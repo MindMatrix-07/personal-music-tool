@@ -1,6 +1,8 @@
 export default async function handler(req, res) {
   const { title, artist, spotifyId } = req.query;
 
+  console.log('Stats.fm API called with:', { title, artist, spotifyId });
+
   if (!title || !artist) {
     res.status(400).json({ error: "Missing title or artist" });
     return;
@@ -11,7 +13,8 @@ export default async function handler(req, res) {
     // Alternative: Use Spotify's audio features API which provides similar data
     // For now, we'll use Spotify's audio features if we have a track ID
     
-    if (spotifyId) {
+    if (spotifyId && spotifyId !== 'null' && spotifyId !== 'undefined') {
+      console.log('Using Spotify track ID:', spotifyId);
       // Get Spotify access token
       const cookies = req.headers.cookie || "";
       const refresh = cookies
@@ -74,12 +77,21 @@ export default async function handler(req, res) {
               timeSignature: features.time_signature || 4,
               duration: features.duration_ms || 0,
               popularity: popularity,
-              source: 'spotify'
+              source: 'spotify',
+              spotifyId: spotifyId
             });
             return;
+          } else {
+            console.error('Spotify features API failed:', featuresResponse.status, await featuresResponse.text().catch(() => ''));
           }
+        } else {
+          console.error('Spotify token refresh failed:', tokenResponse.status);
         }
+      } else {
+        console.error('No Spotify refresh token found in cookies');
       }
+    } else {
+      console.log('No Spotify track ID provided');
     }
 
     // Fallback: Return message that stats.fm requires Spotify track ID

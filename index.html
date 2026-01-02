@@ -1111,16 +1111,25 @@ body {
     // Fetch Stats.fm Info
     async function fetchStatsFmInfo(title, artist, spotifyId) {
       try {
-        const url = `/api/statsfm?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}${spotifyId ? '&spotifyId=' + spotifyId : ''}`;
+        // Always include spotifyId in URL, even if null/undefined (API will handle it)
+        let url = `/api/statsfm?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
+        if (spotifyId) {
+          url += `&spotifyId=${encodeURIComponent(spotifyId)}`;
+        }
+        
+        console.log('Fetching Stats.fm with:', { title, artist, spotifyId, url });
         const response = await fetch(url);
         
         if (response.ok) {
-          return await response.json();
+          const data = await response.json();
+          console.log('Stats.fm response:', data);
+          return data;
         }
-        return { error: 'Stats.fm data unavailable' };
+        const errorData = await response.json().catch(() => ({ error: 'Stats.fm data unavailable' }));
+        return errorData;
       } catch (error) {
         console.error('Stats.fm fetch error:', error);
-        return { error: 'Failed to fetch from Stats.fm' };
+        return { error: 'Failed to fetch from Stats.fm: ' + error.message };
       }
     }
     
@@ -1444,13 +1453,15 @@ async function spotifySearch() {
               <div class="result-title">${track.name}</div>
               <div class="result-artist">${track.artists.map(a => a.name).join(', ')}</div>
             `;
-    div.onclick = () => {
-              const embedHtml = `<iframe src="https://open.spotify.com/embed/track/${track.id}" width="100%" height="152" frameborder="0" allowtransparency="true" allow="autoplay; encrypted-media"></iframe>`;
+            div.onclick = () => {
+              const spotifyTrackId = track.id;
+              console.log('Spotify track selected:', { id: spotifyTrackId, name: track.name, artist: track.artists.map(a => a.name).join(', ') });
+              const embedHtml = `<iframe src="https://open.spotify.com/embed/track/${spotifyTrackId}" width="100%" height="152" frameborder="0" allowtransparency="true" allow="autoplay; encrypted-media"></iframe>`;
               updatePlayer(embedHtml, 'spotify', {
                 title: track.name,
                 artist: track.artists.map(a => a.name).join(', ')
-              }, track.id);
-    };
+              }, spotifyTrackId);
+            };
     sResults.appendChild(div);
   });
         } else {

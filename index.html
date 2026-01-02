@@ -484,6 +484,123 @@ body {
   background: var(--bg-input);
 }
 
+/* Song Info Section */
+.song-info-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.song-info-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.song-info-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.song-info-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.song-info-tab {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: var(--transition);
+}
+
+.song-info-tab.active {
+  background: var(--spotify-green);
+  color: white;
+  border-color: var(--spotify-green);
+}
+
+.song-info-tab:hover {
+  background: var(--bg-input);
+}
+
+.song-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.song-info-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.song-info-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--spotify-green);
+}
+
+.song-info-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.song-info-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.song-info-value-large {
+  font-size: 1.5rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--bg-input);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--spotify-green), var(--spotify-green-hover));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.song-info-loading {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 2rem;
+  font-size: 0.9rem;
+}
+
+.song-info-error {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .main-container {
@@ -592,6 +709,34 @@ body {
   }
   
   .lyrics-tab {
+    flex: 1;
+    min-width: 80px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .song-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .song-info-item {
+    padding: 0.75rem;
+  }
+  
+  .song-info-value {
+    font-size: 1.1rem;
+  }
+  
+  .song-info-value-large {
+    font-size: 1.3rem;
+  }
+  
+  .song-info-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .song-info-tab {
     flex: 1;
     min-width: 80px;
     padding: 0.4rem 0.75rem;
@@ -741,6 +886,20 @@ body {
         </div>
       </div>
       
+      <!-- Song Info Section -->
+      <div class="song-info-section" id="songInfoSection" style="display: none;">
+        <div class="song-info-header">
+          <div class="song-info-title">Song Analysis</div>
+        </div>
+        <div class="song-info-tabs">
+          <button class="song-info-tab active" data-source="tunebat" onclick="switchSongInfoSource('tunebat')">Tunebat</button>
+          <button class="song-info-tab" data-source="statsfm" onclick="switchSongInfoSource('statsfm')">Stats.fm</button>
+        </div>
+        <div class="song-info-content" id="songInfoContent">
+          <div class="song-info-loading">Loading song info...</div>
+        </div>
+      </div>
+      
       <!-- Lyrics Section -->
       <div class="lyrics-section" id="lyricsSection" style="display: none;">
         <div class="lyrics-header">
@@ -764,6 +923,8 @@ body {
     let currentPlayerPlatform = null;
     let currentSongInfo = null;
     let currentLyricsSource = 'genius';
+    let currentSongInfoSource = 'tunebat';
+    let currentSpotifyId = null;
 
     // Theme Management
     const themeToggle = document.getElementById('themeToggle');
@@ -839,24 +1000,227 @@ body {
     }
 
     // Update Player
-    function updatePlayer(embedHtml, platform, songInfo = null) {
+    function updatePlayer(embedHtml, platform, songInfo = null, spotifyId = null) {
       const player = document.getElementById('player');
       player.innerHTML = `<div class="player-embed">${embedHtml}</div>`;
       updatePlayerBadge(platform);
       
-      // Store song info for lyrics
+      // Store song info for lyrics and song analysis
       if (songInfo) {
         currentSongInfo = songInfo;
+        currentSpotifyId = spotifyId;
         loadLyrics(songInfo.title, songInfo.artist, currentLyricsSource);
+        loadSongInfo(songInfo.title, songInfo.artist, currentSongInfoSource, spotifyId);
       } else {
         currentSongInfo = null;
+        currentSpotifyId = null;
         document.getElementById('lyricsSection').style.display = 'none';
+        document.getElementById('songInfoSection').style.display = 'none';
       }
       
       // Auto-switch to the platform tab
       if (platform !== currentPlatform) {
         switchPlatform(platform);
       }
+    }
+    
+    // Switch Song Info Source
+    function switchSongInfoSource(source) {
+      currentSongInfoSource = source;
+      document.querySelectorAll('.song-info-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.source === source);
+      });
+      
+      if (currentSongInfo) {
+        loadSongInfo(currentSongInfo.title, currentSongInfo.artist, source, currentSpotifyId);
+      }
+    }
+    
+    // Load Song Info
+    async function loadSongInfo(title, artist, source = 'tunebat', spotifyId = null) {
+      const songInfoSection = document.getElementById('songInfoSection');
+      const songInfoContent = document.getElementById('songInfoContent');
+      
+      songInfoSection.style.display = 'block';
+      songInfoContent.innerHTML = '<div class="song-info-loading">Loading song info...</div>';
+      
+      try {
+        let data = null;
+        
+        if (source === 'tunebat') {
+          data = await fetchTunebatInfo(title, artist);
+        } else {
+          data = await fetchStatsFmInfo(title, artist, spotifyId);
+        }
+        
+        if (data && !data.error) {
+          displaySongInfo(data);
+        } else {
+          songInfoContent.innerHTML = `<div class="song-info-error">${data?.error || 'Song info not found. Try switching sources.'}</div>`;
+        }
+      } catch (error) {
+        console.error('Song info fetch error:', error);
+        songInfoContent.innerHTML = '<div class="song-info-error">Error loading song info. Please try again.</div>';
+      }
+    }
+    
+    // Fetch Tunebat Info
+    async function fetchTunebatInfo(title, artist) {
+      try {
+        const response = await fetch(
+          `/api/tunebat?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`
+        );
+        
+        if (response.ok) {
+          return await response.json();
+        }
+        return { error: 'Tunebat API unavailable' };
+      } catch (error) {
+        console.error('Tunebat fetch error:', error);
+        return { error: 'Failed to fetch from Tunebat' };
+      }
+    }
+    
+    // Fetch Stats.fm Info
+    async function fetchStatsFmInfo(title, artist, spotifyId) {
+      try {
+        const url = `/api/statsfm?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}${spotifyId ? '&spotifyId=' + spotifyId : ''}`;
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          return await response.json();
+        }
+        return { error: 'Stats.fm data unavailable' };
+      } catch (error) {
+        console.error('Stats.fm fetch error:', error);
+        return { error: 'Failed to fetch from Stats.fm' };
+      }
+    }
+    
+    // Display Song Info
+    function displaySongInfo(data) {
+      const songInfoContent = document.getElementById('songInfoContent');
+      
+      const infoItems = [];
+      
+      if (data.bpm || data.tempo) {
+        infoItems.push({
+          label: 'BPM',
+          value: Math.round(data.bpm || data.tempo || 0),
+          large: true
+        });
+      }
+      
+      if (data.key) {
+        infoItems.push({
+          label: 'Key',
+          value: data.key,
+          large: true
+        });
+      }
+      
+      if (data.energy !== undefined) {
+        infoItems.push({
+          label: 'Energy',
+          value: `${data.energy}%`,
+          progress: data.energy
+        });
+      }
+      
+      if (data.danceability !== undefined) {
+        infoItems.push({
+          label: 'Danceability',
+          value: `${data.danceability}%`,
+          progress: data.danceability
+        });
+      }
+      
+      if (data.valence !== undefined) {
+        infoItems.push({
+          label: 'Valence',
+          value: `${data.valence}%`,
+          progress: data.valence
+        });
+      }
+      
+      if (data.acousticness !== undefined) {
+        infoItems.push({
+          label: 'Acousticness',
+          value: `${data.acousticness}%`,
+          progress: data.acousticness
+        });
+      }
+      
+      if (data.instrumentalness !== undefined) {
+        infoItems.push({
+          label: 'Instrumental',
+          value: `${data.instrumentalness}%`,
+          progress: data.instrumentalness
+        });
+      }
+      
+      if (data.liveness !== undefined) {
+        infoItems.push({
+          label: 'Liveness',
+          value: `${data.liveness}%`,
+          progress: data.liveness
+        });
+      }
+      
+      if (data.speechiness !== undefined) {
+        infoItems.push({
+          label: 'Speechiness',
+          value: `${data.speechiness}%`,
+          progress: data.speechiness
+        });
+      }
+      
+      if (data.timeSignature) {
+        infoItems.push({
+          label: 'Time Sig',
+          value: `${data.timeSignature}/4`
+        });
+      }
+      
+      if (data.popularity !== undefined) {
+        infoItems.push({
+          label: 'Popularity',
+          value: `${data.popularity}%`,
+          progress: data.popularity
+        });
+      }
+      
+      if (data.duration) {
+        const minutes = Math.floor(data.duration / 60000);
+        const seconds = Math.floor((data.duration % 60000) / 1000);
+        infoItems.push({
+          label: 'Duration',
+          value: `${minutes}:${seconds.toString().padStart(2, '0')}`
+        });
+      }
+      
+      if (infoItems.length === 0) {
+        songInfoContent.innerHTML = '<div class="song-info-error">No song data available</div>';
+        return;
+      }
+      
+      const html = `
+        <div class="song-info-grid">
+          ${infoItems.map(item => `
+            <div class="song-info-item">
+              <div class="song-info-label">${item.label}</div>
+              <div class="song-info-value ${item.large ? 'song-info-value-large' : ''}">${item.value}</div>
+              ${item.progress !== undefined ? `
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: ${item.progress}%"></div>
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      `;
+      
+      songInfoContent.innerHTML = html;
     }
     
     // Switch Lyrics Source
@@ -1024,7 +1388,7 @@ body {
               updatePlayer(embedHtml, 'spotify', {
                 title: track.name,
                 artist: track.artists.map(a => a.name).join(', ')
-              });
+              }, track.id);
             };
             sResults.appendChild(div);
           });
@@ -1069,7 +1433,7 @@ body {
               updatePlayer(embedHtml, 'apple', {
                 title: track.trackName,
                 artist: track.artistName
-              });
+              }, null);
             };
             aResults.appendChild(div);
           });
@@ -1112,7 +1476,7 @@ body {
               updatePlayer(embedHtml, 'youtube', {
                 title: titleParts[0] || video.snippet.title,
                 artist: titleParts[1] || video.snippet.channelTitle
-              });
+              }, null);
             };
             yResults.appendChild(div);
           });

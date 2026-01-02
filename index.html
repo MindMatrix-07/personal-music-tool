@@ -143,15 +143,12 @@ async function appleSearch() {
   });
 }
 
-/* ---------- YOUTUBE SEARCH ---------- */
-/* Replace YOUR_YOUTUBE_API_KEY below */
+/* ---------- YOUTUBE SEARCH (SECURE) ---------- */
 async function youtubeSearch() {
   const q = yQuery.value;
 
   const r = await fetch(
-    `https://www.googleapis.com/youtube/v3/search?` +
-    `part=snippet&type=video&maxResults=5&q=${encodeURIComponent(q)}` +
-    `&key=AIzaSyCZCZHeHAXWtxbOMIXoYkBKV3U0LAp4gR4`
+    `/api/youtube-search?q=${encodeURIComponent(q)}`
   );
   const d = await r.json();
 

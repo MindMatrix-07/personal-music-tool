@@ -872,7 +872,7 @@ body {
           <div class="results-container" id="yResults"></div>
         </div>
       </div>
-    </div>
+</div>
 
     <!-- Right Column - Player Card -->
     <div class="player-card">
@@ -915,7 +915,7 @@ body {
         </div>
       </div>
     </div>
-  </div>
+</div>
 
   <script>
     // Current active platform
@@ -1009,6 +1009,16 @@ body {
       if (songInfo) {
         currentSongInfo = songInfo;
         currentSpotifyId = spotifyId;
+        
+        // Auto-switch to Stats.fm if Spotify track ID is available
+        if (spotifyId && platform === 'spotify') {
+          currentSongInfoSource = 'statsfm';
+          // Update active tab
+          document.querySelectorAll('.song-info-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.source === 'statsfm');
+          });
+        }
+        
         loadLyrics(songInfo.title, songInfo.artist, currentLyricsSource);
         loadSongInfo(songInfo.title, songInfo.artist, currentSongInfoSource, spotifyId);
       } else {
@@ -1032,6 +1042,8 @@ body {
       });
       
       if (currentSongInfo) {
+        // Always pass the Spotify track ID if available, regardless of source
+        // Stats.fm will use it, Tunebat will ignore it
         loadSongInfo(currentSongInfo.title, currentSongInfo.artist, source, currentSpotifyId);
       }
     }
@@ -1047,16 +1059,28 @@ body {
       try {
         let data = null;
         
-        if (source === 'tunebat') {
-          data = await fetchTunebatInfo(title, artist);
+        if (source === 'statsfm') {
+          // Stats.fm requires Spotify track ID - use it if available
+          if (spotifyId) {
+            data = await fetchStatsFmInfo(title, artist, spotifyId);
+          } else {
+            // If no Spotify ID but Stats.fm selected, try to find it or show error
+            songInfoContent.innerHTML = '<div class="song-info-error">Stats.fm requires Spotify track. Please select a Spotify track or switch to Tunebat.</div>';
+            return;
+          }
         } else {
-          data = await fetchStatsFmInfo(title, artist, spotifyId);
+          // Tunebat doesn't need Spotify ID, but we can still pass it (it will be ignored)
+          data = await fetchTunebatInfo(title, artist);
         }
         
         if (data && !data.error) {
           displaySongInfo(data);
         } else {
-          songInfoContent.innerHTML = `<div class="song-info-error">${data?.error || 'Song info not found. Try switching sources.'}</div>`;
+          // If Stats.fm fails and we have Spotify ID, suggest trying Tunebat
+          const errorMsg = source === 'statsfm' && spotifyId 
+            ? `${data?.error || 'Stats.fm data unavailable. Try switching to Tunebat.'}`
+            : `${data?.error || 'Song info not found. Try switching sources.'}`;
+          songInfoContent.innerHTML = `<div class="song-info-error">${errorMsg}</div>`;
         }
       } catch (error) {
         console.error('Song info fetch error:', error);
@@ -1217,7 +1241,7 @@ body {
               ` : ''}
             </div>
           `).join('')}
-        </div>
+</div>
       `;
       
       songInfoContent.innerHTML = html;
@@ -1347,12 +1371,12 @@ body {
     }
 
     // Spotify Login
-    function login() {
-      window.location.href = "/api/login";
-    }
+function login() {
+  window.location.href = "/api/login";
+}
 
     // Spotify Search
-    async function spotifySearch() {
+async function spotifySearch() {
       const query = document.getElementById('sQuery').value.trim();
       if (!query) return;
 
@@ -1374,24 +1398,24 @@ body {
         );
         const data = await response.json();
 
-        sResults.innerHTML = "";
+  sResults.innerHTML = "";
         if (data.tracks && data.tracks.items.length > 0) {
           data.tracks.items.forEach(track => {
-            const div = document.createElement("div");
+    const div = document.createElement("div");
             div.className = "result-item";
             div.innerHTML = `
               <div class="result-title">${track.name}</div>
               <div class="result-artist">${track.artists.map(a => a.name).join(', ')}</div>
             `;
-            div.onclick = () => {
+    div.onclick = () => {
               const embedHtml = `<iframe src="https://open.spotify.com/embed/track/${track.id}" width="100%" height="152" frameborder="0" allowtransparency="true" allow="autoplay; encrypted-media"></iframe>`;
               updatePlayer(embedHtml, 'spotify', {
                 title: track.name,
                 artist: track.artists.map(a => a.name).join(', ')
               }, track.id);
-            };
-            sResults.appendChild(div);
-          });
+    };
+    sResults.appendChild(div);
+  });
         } else {
           sResults.innerHTML = '<div class="player-placeholder">No results found</div>';
         }
@@ -1402,7 +1426,7 @@ body {
     }
 
     // Apple Music Search
-    async function appleSearch() {
+async function appleSearch() {
       const query = document.getElementById('aQuery').value.trim();
       if (!query) return;
 
@@ -1415,28 +1439,28 @@ body {
         );
         const data = await response.json();
 
-        aResults.innerHTML = "";
+  aResults.innerHTML = "";
         if (data.results && data.results.length > 0) {
           data.results.forEach(track => {
-            const div = document.createElement("div");
+    const div = document.createElement("div");
             div.className = "result-item";
             div.innerHTML = `
               <div class="result-title">${track.trackName}</div>
               <div class="result-artist">${track.artistName}</div>
             `;
-            div.onclick = () => {
+    div.onclick = () => {
               const embedUrl = track.trackViewUrl.replace(
-                "music.apple.com",
-                "embed.music.apple.com"
+          "music.apple.com",
+          "embed.music.apple.com"
               );
               const embedHtml = `<iframe src="${embedUrl}" width="100%" height="150" frameborder="0" allowtransparency="true" allow="autoplay; encrypted-media"></iframe>`;
               updatePlayer(embedHtml, 'apple', {
                 title: track.trackName,
                 artist: track.artistName
               }, null);
-            };
-            aResults.appendChild(div);
-          });
+    };
+    aResults.appendChild(div);
+  });
         } else {
           aResults.innerHTML = '<div class="player-placeholder">No results found</div>';
         }
@@ -1447,7 +1471,7 @@ body {
     }
 
     // YouTube Search
-    async function youtubeSearch() {
+async function youtubeSearch() {
       const query = document.getElementById('yQuery').value.trim();
       if (!query) return;
 
@@ -1460,16 +1484,16 @@ body {
         );
         const data = await response.json();
 
-        yResults.innerHTML = "";
+  yResults.innerHTML = "";
         if (data.items && data.items.length > 0) {
           data.items.forEach(video => {
-            const div = document.createElement("div");
+    const div = document.createElement("div");
             div.className = "result-item";
             div.innerHTML = `
               <div class="result-title">${video.snippet.title}</div>
               <div class="result-artist">${video.snippet.channelTitle}</div>
             `;
-            div.onclick = () => {
+    div.onclick = () => {
               const embedHtml = `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${video.id.videoId}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
               // Extract artist from title if possible (common format: "Song Name - Artist")
               const titleParts = video.snippet.title.split(' - ');
@@ -1477,9 +1501,9 @@ body {
                 title: titleParts[0] || video.snippet.title,
                 artist: titleParts[1] || video.snippet.channelTitle
               }, null);
-            };
-            yResults.appendChild(div);
-          });
+    };
+    yResults.appendChild(div);
+  });
         } else {
           yResults.innerHTML = '<div class="player-placeholder">No results found</div>';
         }
@@ -1487,7 +1511,7 @@ body {
         yResults.innerHTML = '<div class="player-placeholder">Error searching. Please try again.</div>';
         console.error('YouTube search error:', error);
       }
-    }
-  </script>
+}
+</script>
 </body>
 </html>

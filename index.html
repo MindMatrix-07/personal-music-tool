@@ -907,7 +907,8 @@ body {
           <div class="lyrics-source" id="lyricsSource"></div>
         </div>
         <div class="lyrics-tabs">
-          <button class="lyrics-tab active" data-source="genius" onclick="switchLyricsSource('genius')">Genius</button>
+          <button class="lyrics-tab" data-source="best" onclick="switchLyricsSource('best')">Best Lyrics</button>
+          <button class="lyrics-tab" data-source="genius" onclick="switchLyricsSource('genius')">Genius</button>
           <button class="lyrics-tab" data-source="lrclib" onclick="switchLyricsSource('lrclib')">LRCLib</button>
         </div>
         <div class="lyrics-content" id="lyricsContent">
@@ -922,7 +923,7 @@ body {
     let currentPlatform = 'spotify';
     let currentPlayerPlatform = null;
     let currentSongInfo = null;
-    let currentLyricsSource = 'genius';
+    let currentLyricsSource = 'best'; // Default to best lyrics
     let currentSongInfoSource = 'tunebat';
     let currentSpotifyId = null;
 
@@ -1069,8 +1070,8 @@ body {
             return;
           }
         } else {
-          // Tunebat doesn't need Spotify ID, but we can still pass it (it will be ignored)
-          data = await fetchTunebatInfo(title, artist);
+          // Tunebat can use Spotify ID if available, or search by title/artist
+          data = await fetchTunebatInfo(title, artist, spotifyId);
         }
         
         if (data && !data.error) {
@@ -1089,11 +1090,13 @@ body {
     }
     
     // Fetch Tunebat Info
-    async function fetchTunebatInfo(title, artist) {
+    async function fetchTunebatInfo(title, artist, spotifyId = null) {
       try {
-        const response = await fetch(
-          `/api/tunebat?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`
-        );
+        let url = `/api/tunebat?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
+        if (spotifyId) {
+          url += `&spotifyId=${spotifyId}`;
+        }
+        const response = await fetch(url);
         
         if (response.ok) {
           return await response.json();
@@ -1260,22 +1263,36 @@ body {
     }
     
     // Load Lyrics
-    async function loadLyrics(title, artist, source = 'genius') {
+    async function loadLyrics(title, artist, source = 'best') {
       const lyricsSection = document.getElementById('lyricsSection');
       const lyricsContent = document.getElementById('lyricsContent');
       const lyricsSource = document.getElementById('lyricsSource');
       
       lyricsSection.style.display = 'block';
       lyricsContent.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
-      lyricsSource.textContent = source === 'genius' ? 'Genius' : 'LRCLib';
       
       try {
         let lyrics = null;
+        let sourceName = '';
         
-        if (source === 'genius') {
+        if (source === 'best') {
+          const result = await fetchBestLyrics(title, artist);
+          if (result && result.lyrics) {
+            lyrics = result.lyrics;
+            sourceName = result.source;
+            lyricsSource.textContent = `Best from ${result.source}`;
+          } else {
+            lyricsContent.innerHTML = '<div class="lyrics-error">No lyrics found from any source. Try individual sources.</div>';
+            return;
+          }
+        } else if (source === 'genius') {
           lyrics = await fetchGeniusLyrics(title, artist);
+          sourceName = 'Genius';
+          lyricsSource.textContent = 'Genius';
         } else {
           lyrics = await fetchLRCLibLyrics(title, artist);
+          sourceName = 'LRCLib';
+          lyricsSource.textContent = 'LRCLib';
         }
         
         if (lyrics) {
@@ -1286,6 +1303,26 @@ body {
       } catch (error) {
         console.error('Lyrics fetch error:', error);
         lyricsContent.innerHTML = '<div class="lyrics-error">Error loading lyrics. Please try again.</div>';
+      }
+    }
+    
+    // Fetch Best Lyrics
+    async function fetchBestLyrics(title, artist) {
+      try {
+        const response = await fetch(
+          `/api/best-lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.lyrics) {
+            return data;
+          }
+        }
+        return null;
+      } catch (error) {
+        console.error('Best lyrics fetch error:', error);
+        return null;
       }
     }
     

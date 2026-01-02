@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Personal Music Tool</title>
 
 <style>
@@ -401,6 +402,88 @@ body {
   border-radius: 12px;
 }
 
+/* Lyrics Section */
+.lyrics-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.lyrics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.lyrics-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.lyrics-source {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+}
+
+.lyrics-content {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  line-height: 1.8;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  text-align: left;
+}
+
+.lyrics-loading {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 2rem;
+  font-size: 0.9rem;
+}
+
+.lyrics-error {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+.lyrics-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.lyrics-tab {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: var(--transition);
+}
+
+.lyrics-tab.active {
+  background: var(--spotify-green);
+  color: white;
+  border-color: var(--spotify-green);
+}
+
+.lyrics-tab:hover {
+  background: var(--bg-input);
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .main-container {
@@ -415,35 +498,128 @@ body {
 }
 
 @media (max-width: 768px) {
+  html {
+    font-size: 16px; /* Prevent zoom by using proper base font size */
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  body {
+    font-size: 16px; /* Ensure readable text without zoom */
+  }
+  
   .top-bar {
-    padding: 1rem;
-    flex-direction: column;
-    gap: 1rem;
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
   }
   
   .top-bar-left {
     width: 100%;
-    justify-content: center;
+    justify-content: space-between;
+    gap: 0.5rem;
   }
   
   .platform-tab {
     flex: 1;
-    min-width: 100px;
-    padding: 0.6rem 1rem;
-    font-size: 0.85rem;
+    min-width: 0;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .theme-toggle {
+    padding: 0.4rem 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .theme-toggle span:last-child {
+    display: none; /* Hide text on mobile, show only icon */
   }
   
   .main-container {
-    padding: 1rem;
-    gap: 1.5rem;
+    padding: 1rem 0.75rem;
+    gap: 1.25rem;
   }
   
   .search-card {
-    padding: 1rem;
+    padding: 1.25rem 1rem;
+  }
+  
+  .search-header h2 {
+    font-size: 1.25rem;
+  }
+  
+  .search-input {
+    font-size: 16px; /* Prevent iOS zoom on input focus */
+    padding: 0.75rem 0.875rem;
+  }
+  
+  .search-btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
   }
   
   .player-card {
-    padding: 1rem;
+    padding: 1.25rem 1rem;
+  }
+  
+  .player-title {
+    font-size: 1rem;
+  }
+  
+  .result-item {
+    padding: 0.875rem;
+  }
+  
+  .result-title {
+    font-size: 0.95rem;
+  }
+  
+  .result-artist {
+    font-size: 0.85rem;
+  }
+  
+  .lyrics-content {
+    max-height: 300px;
+    font-size: 0.9rem;
+    padding: 0.875rem;
+  }
+  
+  .lyrics-tabs {
+    flex-wrap: wrap;
+  }
+  
+  .lyrics-tab {
+    flex: 1;
+    min-width: 80px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-bar {
+    padding: 0.625rem 0.75rem;
+  }
+  
+  .platform-tab {
+    padding: 0.55rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .main-container {
+    padding: 0.75rem 0.5rem;
+    gap: 1rem;
+  }
+  
+  .search-card {
+    padding: 1rem 0.875rem;
+  }
+  
+  .player-card {
+    padding: 1rem 0.875rem;
   }
 }
 
@@ -564,6 +740,21 @@ body {
           Select a song to start playing
         </div>
       </div>
+      
+      <!-- Lyrics Section -->
+      <div class="lyrics-section" id="lyricsSection" style="display: none;">
+        <div class="lyrics-header">
+          <div class="lyrics-title">Lyrics</div>
+          <div class="lyrics-source" id="lyricsSource"></div>
+        </div>
+        <div class="lyrics-tabs">
+          <button class="lyrics-tab active" data-source="genius" onclick="switchLyricsSource('genius')">Genius</button>
+          <button class="lyrics-tab" data-source="lrclib" onclick="switchLyricsSource('lrclib')">LRCLib</button>
+        </div>
+        <div class="lyrics-content" id="lyricsContent">
+          <div class="lyrics-loading">Loading lyrics...</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -571,6 +762,8 @@ body {
     // Current active platform
     let currentPlatform = 'spotify';
     let currentPlayerPlatform = null;
+    let currentSongInfo = null;
+    let currentLyricsSource = 'genius';
 
     // Theme Management
     const themeToggle = document.getElementById('themeToggle');
@@ -646,14 +839,146 @@ body {
     }
 
     // Update Player
-    function updatePlayer(embedHtml, platform) {
+    function updatePlayer(embedHtml, platform, songInfo = null) {
       const player = document.getElementById('player');
       player.innerHTML = `<div class="player-embed">${embedHtml}</div>`;
       updatePlayerBadge(platform);
       
+      // Store song info for lyrics
+      if (songInfo) {
+        currentSongInfo = songInfo;
+        loadLyrics(songInfo.title, songInfo.artist, currentLyricsSource);
+      } else {
+        currentSongInfo = null;
+        document.getElementById('lyricsSection').style.display = 'none';
+      }
+      
       // Auto-switch to the platform tab
       if (platform !== currentPlatform) {
         switchPlatform(platform);
+      }
+    }
+    
+    // Switch Lyrics Source
+    function switchLyricsSource(source) {
+      currentLyricsSource = source;
+      document.querySelectorAll('.lyrics-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.source === source);
+      });
+      
+      if (currentSongInfo) {
+        loadLyrics(currentSongInfo.title, currentSongInfo.artist, source);
+      }
+    }
+    
+    // Load Lyrics
+    async function loadLyrics(title, artist, source = 'genius') {
+      const lyricsSection = document.getElementById('lyricsSection');
+      const lyricsContent = document.getElementById('lyricsContent');
+      const lyricsSource = document.getElementById('lyricsSource');
+      
+      lyricsSection.style.display = 'block';
+      lyricsContent.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
+      lyricsSource.textContent = source === 'genius' ? 'Genius' : 'LRCLib';
+      
+      try {
+        let lyrics = null;
+        
+        if (source === 'genius') {
+          lyrics = await fetchGeniusLyrics(title, artist);
+        } else {
+          lyrics = await fetchLRCLibLyrics(title, artist);
+        }
+        
+        if (lyrics) {
+          lyricsContent.innerHTML = `<div class="lyrics-content">${lyrics}</div>`;
+        } else {
+          lyricsContent.innerHTML = '<div class="lyrics-error">Lyrics not found. Try switching sources.</div>';
+        }
+      } catch (error) {
+        console.error('Lyrics fetch error:', error);
+        lyricsContent.innerHTML = '<div class="lyrics-error">Error loading lyrics. Please try again.</div>';
+      }
+    }
+    
+    // Fetch Genius Lyrics
+    async function fetchGeniusLyrics(title, artist) {
+      try {
+        // Use server-side API endpoint
+        const response = await fetch(
+          `/api/genius-lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.url) {
+            // For now, return a link. Full lyrics scraping would require server-side implementation
+            return `Lyrics available on Genius:\n${data.url}\n\nNote: Full lyrics display requires Genius API access token in environment variables.`;
+          }
+        }
+        
+        // Fallback to LRCLib
+        return await fetchLRCLibLyrics(title, artist);
+      } catch (error) {
+        console.error('Genius fetch error:', error);
+        // Fallback to LRCLib
+        return await fetchLRCLibLyrics(title, artist);
+      }
+    }
+    
+    // Fetch LRCLib Lyrics
+    async function fetchLRCLibLyrics(title, artist) {
+      try {
+        // Clean song title and artist for better matching
+        const cleanTitle = title.replace(/\([^)]*\)/g, '').trim();
+        const cleanArtist = artist.split(',')[0].trim();
+        
+        // Try LRCLib API
+        const searchQuery = `${cleanTitle} ${cleanArtist}`;
+        const response = await fetch(
+          `https://lrclib.net/api/search?q=${encodeURIComponent(searchQuery)}&limit=1`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0 && data[0].syncedLyrics) {
+            // Return synced lyrics
+            const lyrics = data[0].syncedLyrics;
+            // Format synced lyrics (remove timestamps for display or show them)
+            const formattedLyrics = lyrics
+              .replace(/\[(\d{2}):(\d{2})\.(\d{2,3})\]/g, '') // Remove timestamps
+              .trim();
+            return formattedLyrics || data[0].plainLyrics || 'Lyrics found but empty.';
+          } else if (data && data.length > 0 && data[0].plainLyrics) {
+            return data[0].plainLyrics;
+          }
+        }
+        
+        // Try alternative: search by track name only
+        const titleOnlyResponse = await fetch(
+          `https://lrclib.net/api/search?q=${encodeURIComponent(cleanTitle)}&limit=3`
+        );
+        
+        if (titleOnlyResponse.ok) {
+          const titleData = await titleOnlyResponse.json();
+          if (titleData && titleData.length > 0) {
+            // Find best match by artist
+            const match = titleData.find(track => 
+              track.artistName && track.artistName.toLowerCase().includes(cleanArtist.toLowerCase())
+            ) || titleData[0];
+            
+            if (match.plainLyrics) {
+              return match.plainLyrics;
+            } else if (match.syncedLyrics) {
+              return match.syncedLyrics.replace(/\[(\d{2}):(\d{2})\.(\d{2,3})\]/g, '').trim();
+            }
+          }
+        }
+        
+        return null;
+      } catch (error) {
+        console.error('LRCLib fetch error:', error);
+        return null;
       }
     }
 
@@ -696,7 +1021,10 @@ body {
             `;
             div.onclick = () => {
               const embedHtml = `<iframe src="https://open.spotify.com/embed/track/${track.id}" width="100%" height="152" frameborder="0" allowtransparency="true" allow="autoplay; encrypted-media"></iframe>`;
-              updatePlayer(embedHtml, 'spotify');
+              updatePlayer(embedHtml, 'spotify', {
+                title: track.name,
+                artist: track.artists.map(a => a.name).join(', ')
+              });
             };
             sResults.appendChild(div);
           });
@@ -738,7 +1066,10 @@ body {
                 "embed.music.apple.com"
               );
               const embedHtml = `<iframe src="${embedUrl}" width="100%" height="150" frameborder="0" allowtransparency="true" allow="autoplay; encrypted-media"></iframe>`;
-              updatePlayer(embedHtml, 'apple');
+              updatePlayer(embedHtml, 'apple', {
+                title: track.trackName,
+                artist: track.artistName
+              });
             };
             aResults.appendChild(div);
           });
@@ -776,7 +1107,12 @@ body {
             `;
             div.onclick = () => {
               const embedHtml = `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${video.id.videoId}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
-              updatePlayer(embedHtml, 'youtube');
+              // Extract artist from title if possible (common format: "Song Name - Artist")
+              const titleParts = video.snippet.title.split(' - ');
+              updatePlayer(embedHtml, 'youtube', {
+                title: titleParts[0] || video.snippet.title,
+                artist: titleParts[1] || video.snippet.channelTitle
+              });
             };
             yResults.appendChild(div);
           });

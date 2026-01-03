@@ -30,6 +30,18 @@ Development
 Files changed
 - `index.html` — added lyrics editor, controls, timestamp capture and checks.
 
+Tests
+-----
+There's a small Node-based test runner that exercises the core check helpers.
+
+Run the tests locally with:
+
+```powershell
+node tests/run-tests.js
+```
+
+This runs simple assertions for `estimateSyllables` and the `runChecksOnText` demo harness (`test_checks.js`).
+
 If you want, I can:
 - Expand the proper-noun dictionary and add fuzzy name matching
 - Add unit tests for the checkers and a demo HTML with sample lyrics

@@ -865,6 +865,7 @@ body {
       <span id="themeIcon">🌙</span>
       <span id="themeText">Dark</span>
     </button>
+    <button class="search-btn" onclick="showDemo()" style="margin-left:0.75rem">Show Demo</button>
   </div>
 
   <!-- Main Container -->
@@ -1903,6 +1904,28 @@ function exportReport() {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+// Demo helper to load sample lyrics so features are visible without API
+function showDemo() {
+  const sample = `[00:00.00] Demo Song - Artist
+[00:05.20] Verse 1: I woke up this morning, the sun was bright
+You know I felt the rhythm, moving through the night
+What are you doing
+
+[00:20.50] Chorus: Oh, oh, we sing again
+Oh, oh, we sing again
+
+[00:40.00] Verse 2: The city lights were calling my name
+I walked the streets alone but I felt no pain
+What are you doing
+
+`;
+  setupLyricsEditor(sample, 'Demo');
+  // show the lyrics section and focus
+  document.getElementById('lyricsSection').style.display = 'block';
+  const ta = document.getElementById('lyricsEditor');
+  if (ta) ta.focus();
 }
 
 function estimateSyllables(line) {

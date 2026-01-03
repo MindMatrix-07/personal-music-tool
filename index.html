@@ -1564,6 +1564,7 @@ function setupLyricsEditor(text, sourceName) {
     <div class="lyrics-editor-toolbar">
       <button class="search-btn" onclick="promptInsertTimestamp()">Insert Timestamp</button>
       <button class="search-btn" onclick="runChecks()">Run Checks</button>
+      <button class="search-btn" onclick="exportReport()">Export Report</button>
       <button class="search-btn" onclick="toggleNotesView()">Toggle Notes</button>
       <div style="margin-left:auto;color:var(--text-secondary);padding:0.5rem 0.75rem;border-radius:8px;background:transparent;">${sourceName}</div>
     </div>
@@ -1636,21 +1637,35 @@ function runChecks() {
     }
   });
 
-  // Repetition / structure
-  const map = {};
-  lines.forEach((ln, i) => {
-    const key = ln.trim().toLowerCase();
-    if (!key) return;
-    map[key] = map[key] || [];
-    map[key].push(i+1);
-  });
-  Object.keys(map).forEach(k => {
-    if (map[k].length > 1) {
-      const msg = `Repeated line at lines: ${map[k].join(', ')}`;
-      report.push(msg);
-      map[k].forEach(n => issues.push({ line: n, message: `Repeated: appears on lines ${map[k].join(', ')}` }));
+  // Repetition / structure: detect repeated multi-line blocks (chorus/verse)
+  const blockMatches = [];
+  const minBlock = 2; // minimum lines in a repeated block
+  const maxBlock = 8; // max block length to check
+  for (let size = maxBlock; size >= minBlock; size--) {
+    const seen = {};
+    for (let i = 0; i + size <= lines.length; i++) {
+      const block = lines.slice(i, i + size).map(l => l.trim().toLowerCase()).join('\n');
+      if (!block || /^\s*$/.test(block)) continue;
+      seen[block] = seen[block] || [];
+      seen[block].push(i+1);
     }
-  });
+    Object.keys(seen).forEach(b => {
+      if (seen[b].length > 1) {
+        // record as a repeated block
+        blockMatches.push({ size, occurrences: seen[b] });
+        const msg = `Repeated ${size}-line block at starts: ${seen[b].join(', ')}`;
+        report.push(msg);
+        seen[b].forEach(n => issues.push({ line: n, message: `Repeated ${size}-line block (starts at ${seen[b].join(', ')})` }));
+        // zero out lines in this block to avoid duplicate smaller-block reports
+        seen[b].forEach(start => {
+          for (let k = 0; k < size; k++) {
+            const idx = start - 1 + k;
+            if (idx >= 0 && idx < lines.length) lines[idx] = lines[idx];
+          }
+        });
+      }
+    });
+  }
 
   // Proper-noun / capitalization check against a small dictionary
   const properNouns = ['Mumbai','India','Taylor','Beyonce','Ariana','Rihanna','Gandhi'];
@@ -1723,6 +1738,18 @@ function runChecks() {
     }
   });
 
+  // Readability heuristic: words per line and average word length
+  lines.forEach((ln, i) => {
+    const words = ln.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) return;
+    const avgWordLen = words.reduce((s,w)=>s+w.replace(/[^A-Za-z]/g,'').length,0)/words.length;
+    if (words.length > 10 || avgWordLen > 7) {
+      const msg = `Line ${i+1}: Low readability (words:${words.length}, avgLen:${avgWordLen.toFixed(1)})`;
+      report.push(msg);
+      issues.push({ line: i+1, message: msg });
+    }
+  });
+
   // Show report
   const reportDiv = document.getElementById('checkReport');
   if (report.length === 0) {
@@ -1757,6 +1784,33 @@ function goToLine(n) {
   ta.focus();
   ta.selectionStart = ta.selectionEnd = pos;
   ta.scrollTop = Math.max(0, (n-3) * 20);
+}
+
+function exportReport() {
+  const reportDiv = document.getElementById('checkReport');
+  const issuesDiv = document.getElementById('issuesList');
+  const ta = document.getElementById('lyricsEditor');
+  const text = ta ? ta.value : '';
+  // Re-run checks to ensure latest
+  runChecks();
+  const reportHtml = reportDiv ? reportDiv.innerHTML : '';
+  const issuesHtml = issuesDiv ? issuesDiv.innerHTML : '';
+  const payload = {
+    song: getSongKey(),
+    lyrics: text,
+    reportHtml,
+    issuesHtml,
+    timestamp: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${getSongKey().replace(/[^a-z0-9-_]/gi,'_')}-review.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function estimateSyllables(line) {

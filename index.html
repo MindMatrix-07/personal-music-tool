@@ -815,6 +815,35 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
 }
+
+/* Lyrics editor overlay for per-line highlights */
+.editor-wrap {
+  position: relative;
+}
+.lyrics-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  padding: 0.75rem;
+  overflow: hidden;
+  color: transparent; /* keep text invisible but allow selection via JS if needed */
+}
+.lyrics-overlay .line {
+  display: block;
+}
+.lyrics-overlay .highlight {
+  background: rgba(255, 210, 77, 0.18);
+  border-left: 3px solid rgba(255, 180, 0, 0.9);
+  color: inherit;
+  pointer-events: auto;
+}
 </style>
 </head>
 
@@ -1568,13 +1597,25 @@ function setupLyricsEditor(text, sourceName) {
       <button class="search-btn" onclick="toggleNotesView()">Toggle Notes</button>
       <div style="margin-left:auto;color:var(--text-secondary);padding:0.5rem 0.75rem;border-radius:8px;background:transparent;">${sourceName}</div>
     </div>
-    <textarea id="lyricsEditor" class="lyrics-editor-textarea"></textarea>
+    <div class="editor-wrap">
+      <div id="lyricsOverlay" class="lyrics-overlay" aria-hidden="true"></div>
+      <textarea id="lyricsEditor" class="lyrics-editor-textarea"></textarea>
+    </div>
     <div id="checkReport" class="check-report" style="display:none"></div>
   `;
   lyricsContent.innerHTML = html;
   const ta = document.getElementById('lyricsEditor');
   ta.value = text;
   loadNotesForEditor();
+  // attach overlay syncing and live-checks
+  const overlay = document.getElementById('lyricsOverlay');
+  function syncScroll() {
+    if (overlay) overlay.scrollTop = ta.scrollTop;
+  }
+  ta.addEventListener('scroll', syncScroll);
+  ta.addEventListener('input', debounce(() => runChecks(), 400));
+  // render initial checks and overlay
+  runChecks();
 }
 
 function promptInsertTimestamp() {
@@ -1796,6 +1837,8 @@ function runChecks() {
     issuesDiv.style.display = 'block';
     issuesDiv.innerHTML = '<strong>Issues (click to jump):</strong><br>' + issues.map(it => `<a href="#" onclick="goToLine(${it.line});return false;">Line ${it.line}: ${escapeHtml(it.message)}</a>`).join('<br>');
   }
+  // render overlay highlights for current lines and issues
+  try { renderOverlay(lines, issues); } catch(e) { console.warn('overlay render failed', e); }
 }
 
 function escapeHtml(s) {
@@ -1811,6 +1854,28 @@ function goToLine(n) {
   ta.focus();
   ta.selectionStart = ta.selectionEnd = pos;
   ta.scrollTop = Math.max(0, (n-3) * 20);
+}
+
+// Render overlay highlights for each line using issues
+function renderOverlay(lines, issues) {
+  const overlay = document.getElementById('lyricsOverlay');
+  if (!overlay) return;
+  overlay.innerHTML = lines.map((ln, i) => {
+    const num = i+1;
+    const has = issues.some(it => it.line === num);
+    const safe = escapeHtml(ln) || '&nbsp;';
+    return `<div class="line ${has? 'highlight':''}" data-line="${num}">${safe}</div>`;
+  }).join('');
+  const ta = document.getElementById('lyricsEditor');
+  if (ta) overlay.scrollTop = ta.scrollTop;
+}
+
+function debounce(fn, wait) {
+  let t = null;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
+  };
 }
 
 function exportReport() {

@@ -1623,13 +1623,16 @@ function runChecks() {
   const text = ta.value;
   const lines = text.split(/\r?\n/);
   const report = [];
+  const issues = [];
 
   // Line-length check
   const maxLen = 42;
   lines.forEach((ln, i) => {
     if (ln.trim().length === 0) return;
     if (ln.length > maxLen) {
-      report.push(`Line ${i+1}: Too long (${ln.length} chars)`);
+      const msg = `Line ${i+1}: Too long (${ln.length} chars)`;
+      report.push(msg);
+      issues.push({ line: i+1, message: msg });
     }
   });
 
@@ -1643,7 +1646,9 @@ function runChecks() {
   });
   Object.keys(map).forEach(k => {
     if (map[k].length > 1) {
-      report.push(`Repeated line at lines: ${map[k].join(', ')}`);
+      const msg = `Repeated line at lines: ${map[k].join(', ')}`;
+      report.push(msg);
+      map[k].forEach(n => issues.push({ line: n, message: `Repeated: appears on lines ${map[k].join(', ')}` }));
     }
   });
 
@@ -1653,9 +1658,10 @@ function runChecks() {
     properNouns.forEach(name => {
       const re = new RegExp(`\\b${name}\\b`, 'i');
       if (re.test(ln)) {
-        // if exact match is present but not capitalized correctly
         if (!new RegExp(`\\b${name}\\b`).test(ln)) {
-          report.push(`Line ${i+1}: Proper noun "${name}" may be incorrectly capitalized`);
+          const msg = `Line ${i+1}: Proper noun "${name}" may be incorrectly capitalized`;
+          report.push(msg);
+          issues.push({ line: i+1, message: msg });
         }
       }
     });
@@ -1665,10 +1671,14 @@ function runChecks() {
   const questionWords = /\b(what|why|how|when|where|who)\b/i;
   lines.forEach((ln, i) => {
     if (questionWords.test(ln) && !/\?$/.test(ln.trim())) {
-      report.push(`Line ${i+1}: Looks like a question but missing '?'`);
+      const msg = `Line ${i+1}: Looks like a question but missing '?'`;
+      report.push(msg);
+      issues.push({ line: i+1, message: msg });
     }
     if (/\.\.\./.test(ln) && !/\.\.\./.test(ln.trim())) {
-      report.push(`Line ${i+1}: Inconsistent ellipses`);
+      const msg = `Line ${i+1}: Inconsistent ellipses`;
+      report.push(msg);
+      issues.push({ line: i+1, message: msg });
     }
   });
 
@@ -1678,7 +1688,9 @@ function runChecks() {
     if (!trimmed) return;
     const first = trimmed.charAt(0);
     if (first === first.toLowerCase() && /[A-Za-z]/.test(first)) {
-      report.push(`Line ${i+1}: Starts with lowercase letter`);
+      const msg = `Line ${i+1}: Starts with lowercase letter`;
+      report.push(msg);
+      issues.push({ line: i+1, message: msg });
     }
   });
 
@@ -1695,14 +1707,20 @@ function runChecks() {
     const hasLatin = /[A-Za-z]/.test(ln);
     const found = scriptChecks.filter(s => s.re.test(ln)).map(s => s.name);
     if (hasLatin && found.length > 0) {
-      report.push(`Line ${i+1}: Mixed scripts (Latin + ${found.join('/')})`);
+      const msg = `Line ${i+1}: Mixed scripts (Latin + ${found.join('/')})`;
+      report.push(msg);
+      issues.push({ line: i+1, message: msg });
     }
   });
 
   // Syllable heuristic per line
   lines.forEach((ln, i) => {
     const syl = estimateSyllables(ln);
-    if (syl > 18) report.push(`Line ${i+1}: High syllable count (~${syl})`);
+    if (syl > 18) {
+      const msg = `Line ${i+1}: High syllable count (~${syl})`;
+      report.push(msg);
+      issues.push({ line: i+1, message: msg });
+    }
   });
 
   // Show report
@@ -1714,6 +1732,31 @@ function runChecks() {
     reportDiv.style.display = 'block';
     reportDiv.innerHTML = '<strong>Reviewer-sim report:</strong><br>' + report.map(r => `- ${r}`).join('<br>');
   }
+
+  // Populate clickable issues list for quick navigation
+  const issuesDiv = document.getElementById('issuesList');
+  if (issues.length === 0) {
+    issuesDiv.style.display = 'none';
+    issuesDiv.innerHTML = '';
+  } else {
+    issuesDiv.style.display = 'block';
+    issuesDiv.innerHTML = '<strong>Issues (click to jump):</strong><br>' + issues.map(it => `<a href="#" onclick="goToLine(${it.line});return false;">Line ${it.line}: ${escapeHtml(it.message)}</a>`).join('<br>');
+  }
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function goToLine(n) {
+  const ta = document.getElementById('lyricsEditor');
+  if (!ta) return;
+  const lines = ta.value.split(/\r?\n/);
+  let pos = 0;
+  for (let i=0;i<n-1 && i<lines.length;i++) pos += lines[i].length + 1;
+  ta.focus();
+  ta.selectionStart = ta.selectionEnd = pos;
+  ta.scrollTop = Math.max(0, (n-3) * 20);
 }
 
 function estimateSyllables(line) {

@@ -1668,16 +1668,43 @@ function runChecks() {
   }
 
   // Proper-noun / capitalization check against a small dictionary
+  // Proper-noun / capitalization detection
   const properNouns = ['Mumbai','India','Taylor','Beyonce','Ariana','Rihanna','Gandhi'];
+  // Build a file-wide word capitalization map to find inconsistent usages
+  const wordCaps = {};
   lines.forEach((ln, i) => {
-    properNouns.forEach(name => {
-      const re = new RegExp(`\\b${name}\\b`, 'i');
-      if (re.test(ln)) {
-        if (!new RegExp(`\\b${name}\\b`).test(ln)) {
-          const msg = `Line ${i+1}: Proper noun "${name}" may be incorrectly capitalized`;
+    const words = ln.split(/[^A-Za-z\u00C0-\u024F'-]+/).filter(Boolean);
+    words.forEach(w => {
+      const key = w.toLowerCase();
+      wordCaps[key] = wordCaps[key] || new Set();
+      wordCaps[key].add(w);
+    });
+  });
+  // Flag words that appear with inconsistent capitalization (e.g., "mumbai" and "Mumbai")
+  Object.keys(wordCaps).forEach(k => {
+    const variants = Array.from(wordCaps[k]);
+    if (variants.length > 1) {
+      // prefer Title Case as canonical suggestion
+      const suggestion = variants.find(v => /^[A-Z][a-z]/.test(v)) || variants[0];
+      // find all lines containing lowercase-only occurrences to warn
+      lines.forEach((ln, i) => {
+        const re = new RegExp(`\\b${k}\\b`, 'g');
+        if (re.test(ln) && !new RegExp(`\\b${suggestion}\\b`).test(ln)) {
+          const msg = `Line ${i+1}: Inconsistent capitalization for "${k}" (suggest "${suggestion}")`;
           report.push(msg);
           issues.push({ line: i+1, message: msg });
         }
+      });
+    }
+  });
+  // Also flag known proper nouns if present but lowercase
+  lines.forEach((ln, i) => {
+    properNouns.forEach(name => {
+      const reLower = new RegExp(`\\b${name.toLowerCase()}\\b`);
+      if (reLower.test(ln) && !new RegExp(`\\b${name}\\b`).test(ln)) {
+        const msg = `Line ${i+1}: Proper noun "${name}" may be incorrectly capitalized`;
+        report.push(msg);
+        issues.push({ line: i+1, message: msg });
       }
     });
   });

@@ -443,6 +443,36 @@ body {
   text-align: left;
 }
 
+.lyrics-editor-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.lyrics-editor-textarea {
+  width: 100%;
+  min-height: 220px;
+  max-height: 520px;
+  resize: vertical;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-family: inherit;
+}
+
+.check-report {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+
 .lyrics-loading {
   text-align: center;
   color: var(--text-secondary);
@@ -1001,16 +1031,30 @@ body {
     }
 
     // Update Player
-    function updatePlayer(embedHtml, platform, songInfo = null, spotifyId = null) {
+    function updatePlayer(embedHtml, platform, songInfo = null, spotifyId = null, previewUrl = null, extra = {}) {
       const player = document.getElementById('player');
-      player.innerHTML = `<div class="player-embed">${embedHtml}</div>`;
+      // Build embed area and controls area
+      player.innerHTML = `
+        <div class="player-embed">${embedHtml}</div>
+        <div id="playerControls" style="margin-top:0.75rem"></div>
+      `;
       updatePlayerBadge(platform);
-      
+
+      // If previewUrl is provided, create HTML5 audio with capture button
+      if (previewUrl) {
+        setupAudioPreview(previewUrl, platform);
+      }
+
+      // If extra.youtubeId is provided, initialize YouTube JS API player for timestamp capture
+      if (extra && extra.youtubeId) {
+        setupYouTubePlayer(extra.youtubeId);
+      }
+
       // Store song info for lyrics and song analysis
       if (songInfo) {
         currentSongInfo = songInfo;
         currentSpotifyId = spotifyId;
-        
+
         // Auto-switch to Stats.fm if Spotify track ID is available
         if (spotifyId && platform === 'spotify') {
           currentSongInfoSource = 'statsfm';
@@ -1019,7 +1063,7 @@ body {
             tab.classList.toggle('active', tab.dataset.source === 'statsfm');
           });
         }
-        
+
         loadLyrics(songInfo.title, songInfo.artist, currentLyricsSource);
         loadSongInfo(songInfo.title, songInfo.artist, currentSongInfoSource, spotifyId);
       } else {
@@ -1028,11 +1072,103 @@ body {
         document.getElementById('lyricsSection').style.display = 'none';
         document.getElementById('songInfoSection').style.display = 'none';
       }
-      
+
       // Auto-switch to the platform tab
       if (platform !== currentPlatform) {
         switchPlatform(platform);
       }
+    }
+
+    // Setup audio preview controls and a capture button to insert timestamp
+    function setupAudioPreview(previewUrl, platform) {
+      const controls = document.getElementById('playerControls');
+      if (!controls) return;
+      controls.innerHTML = `
+        <audio id="previewAudio" controls src="${previewUrl}" style="width:100%"></audio>
+        <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+          <button class="search-btn" onclick="captureAudioTime()">Capture Time</button>
+          <button class="search-btn" onclick="insertCurrentTimeIntoEditor()">Insert Current</button>
+          <button class="search-btn" onclick="saveNotesForEditor()">Save Notes</button>
+        </div>
+      `;
+    }
+
+    function captureAudioTime() {
+      const audio = document.getElementById('previewAudio');
+      if (!audio) return alert('No preview audio available');
+      const t = audio.currentTime || 0;
+      const stamp = formatTimestamp(t);
+      promptInsertOrCopy(stamp);
+    }
+
+    function insertCurrentTimeIntoEditor() {
+      const audio = document.getElementById('previewAudio');
+      if (!audio) return alert('No preview audio available');
+      const t = audio.currentTime || 0;
+      const stamp = formatTimestamp(t);
+      insertAtCursor(document.getElementById('lyricsEditor'), stamp + '\n');
+    }
+
+    function promptInsertOrCopy(stamp) {
+      if (confirm(`Insert timestamp ${stamp} into lyrics editor? (Cancel to copy)`)) {
+        const ta = document.getElementById('lyricsEditor');
+        if (ta) insertAtCursor(ta, stamp + '\n');
+      } else {
+        navigator.clipboard && navigator.clipboard.writeText(stamp).then(()=>alert('Copied timestamp to clipboard'));
+      }
+    }
+
+    // --- YouTube player integration for timestamp capture ---
+    let ytPlayer = null;
+    function setupYouTubePlayer(videoId) {
+      // If YouTube IFrame API not loaded, dynamic load
+      if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+      }
+
+      // Create or replace iframe with enablejsapi=1
+      const embed = document.querySelector('.player-embed iframe');
+      if (embed) {
+        const src = embed.src;
+        if (!/enablejsapi=1/.test(src)) {
+          embed.src = src + (src.indexOf('?') === -1 ? '?' : '&') + 'enablejsapi=1';
+        }
+        embed.id = 'ytPlayerIframe';
+      }
+
+      // Poll for YT availability then create player
+      const tryCreate = () => {
+        if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
+          if (ytPlayer) ytPlayer.destroy();
+          ytPlayer = new YT.Player('ytPlayerIframe', {
+            events: {
+              onReady: () => {
+                const controls = document.getElementById('playerControls');
+                if (controls) controls.innerHTML = `<div style="display:flex;gap:0.5rem"><button class="search-btn" onclick="captureYouTubeTime()">Capture Time</button><button class="search-btn" onclick="insertCurrentTimeIntoEditorYT()">Insert Current</button></div>`;
+              }
+            }
+          });
+        } else {
+          setTimeout(tryCreate, 300);
+        }
+      };
+      tryCreate();
+    }
+
+    function captureYouTubeTime() {
+      if (!ytPlayer) return alert('YouTube player not ready');
+      const t = ytPlayer.getCurrentTime();
+      const stamp = formatTimestamp(t);
+      promptInsertOrCopy(stamp);
+    }
+
+    function insertCurrentTimeIntoEditorYT() {
+      if (!ytPlayer) return alert('YouTube player not ready');
+      const t = ytPlayer.getCurrentTime();
+      const stamp = formatTimestamp(t);
+      insertAtCursor(document.getElementById('lyricsEditor'), stamp + '\n');
     }
     
     // Switch Song Info Source
@@ -1305,7 +1441,7 @@ body {
         }
         
         if (lyrics) {
-          lyricsContent.innerHTML = `<div class="lyrics-content">${lyrics}</div>`;
+          setupLyricsEditor(lyrics, sourceName || 'Lyrics');
         } else {
           lyricsContent.innerHTML = '<div class="lyrics-error">Lyrics not found. Try switching sources.</div>';
         }
@@ -1421,6 +1557,236 @@ function login() {
   window.location.href = "/api/login";
 }
 
+// --- Lyrics editor helpers ---
+function setupLyricsEditor(text, sourceName) {
+  const lyricsContent = document.getElementById('lyricsContent');
+  const html = `
+    <div class="lyrics-editor-toolbar">
+      <button class="search-btn" onclick="promptInsertTimestamp()">Insert Timestamp</button>
+      <button class="search-btn" onclick="runChecks()">Run Checks</button>
+      <button class="search-btn" onclick="toggleNotesView()">Toggle Notes</button>
+      <div style="margin-left:auto;color:var(--text-secondary);padding:0.5rem 0.75rem;border-radius:8px;background:transparent;">${sourceName}</div>
+    </div>
+    <textarea id="lyricsEditor" class="lyrics-editor-textarea"></textarea>
+    <div id="checkReport" class="check-report" style="display:none"></div>
+  `;
+  lyricsContent.innerHTML = html;
+  const ta = document.getElementById('lyricsEditor');
+  ta.value = text;
+  loadNotesForEditor();
+}
+
+function promptInsertTimestamp() {
+  // Prompt for time (seconds or mm:ss[.xx]) and insert formatted [mm:ss.xx]
+  const input = prompt('Enter time (seconds or mm:ss[.xx]):');
+  if (!input) return;
+  const seconds = parseTimeInput(input);
+  if (isNaN(seconds)) {
+    alert('Could not parse time. Use seconds or mm:ss[.xx]');
+    return;
+  }
+  const stamp = formatTimestamp(seconds);
+  insertAtCursor(document.getElementById('lyricsEditor'), stamp + '\n');
+}
+
+function parseTimeInput(s) {
+  s = s.trim();
+  if (/^\d+:/.test(s)) {
+    const parts = s.split(':');
+    const mm = parseInt(parts[0], 10);
+    const ss = parseFloat(parts[1]);
+    return mm * 60 + ss;
+  }
+  return parseFloat(s);
+}
+
+function formatTimestamp(seconds) {
+  const mm = Math.floor(seconds / 60);
+  const ss = Math.floor(seconds % 60);
+  const xx = Math.floor((seconds - Math.floor(seconds)) * 100).toString().padStart(2, '0');
+  return `[${mm.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}.${xx}]`;
+}
+
+function insertAtCursor(el, text) {
+  const start = el.selectionStart || 0;
+  const end = el.selectionEnd || 0;
+  const value = el.value || '';
+  el.value = value.slice(0, start) + text + value.slice(end);
+  const pos = start + text.length;
+  el.selectionStart = el.selectionEnd = pos;
+  el.focus();
+}
+
+function runChecks() {
+  const ta = document.getElementById('lyricsEditor');
+  if (!ta) return;
+  const text = ta.value;
+  const lines = text.split(/\r?\n/);
+  const report = [];
+
+  // Line-length check
+  const maxLen = 42;
+  lines.forEach((ln, i) => {
+    if (ln.trim().length === 0) return;
+    if (ln.length > maxLen) {
+      report.push(`Line ${i+1}: Too long (${ln.length} chars)`);
+    }
+  });
+
+  // Repetition / structure
+  const map = {};
+  lines.forEach((ln, i) => {
+    const key = ln.trim().toLowerCase();
+    if (!key) return;
+    map[key] = map[key] || [];
+    map[key].push(i+1);
+  });
+  Object.keys(map).forEach(k => {
+    if (map[k].length > 1) {
+      report.push(`Repeated line at lines: ${map[k].join(', ')}`);
+    }
+  });
+
+  // Proper-noun / capitalization check against a small dictionary
+  const properNouns = ['Mumbai','India','Taylor','Beyonce','Ariana','Rihanna','Gandhi'];
+  lines.forEach((ln, i) => {
+    properNouns.forEach(name => {
+      const re = new RegExp(`\\b${name}\\b`, 'i');
+      if (re.test(ln)) {
+        // if exact match is present but not capitalized correctly
+        if (!new RegExp(`\\b${name}\\b`).test(ln)) {
+          report.push(`Line ${i+1}: Proper noun "${name}" may be incorrectly capitalized`);
+        }
+      }
+    });
+  });
+
+  // Punctuation / question-mark
+  const questionWords = /\b(what|why|how|when|where|who)\b/i;
+  lines.forEach((ln, i) => {
+    if (questionWords.test(ln) && !/\?$/.test(ln.trim())) {
+      report.push(`Line ${i+1}: Looks like a question but missing '?'`);
+    }
+    if (/\.\.\./.test(ln) && !/\.\.\./.test(ln.trim())) {
+      report.push(`Line ${i+1}: Inconsistent ellipses`);
+    }
+  });
+
+  // Capitalization
+  lines.forEach((ln, i) => {
+    const trimmed = ln.trim();
+    if (!trimmed) return;
+    const first = trimmed.charAt(0);
+    if (first === first.toLowerCase() && /[A-Za-z]/.test(first)) {
+      report.push(`Line ${i+1}: Starts with lowercase letter`);
+    }
+  });
+
+  // Script mixing detection (Latin + Indic/Cyrillic/Arabic ranges)
+  const scriptChecks = [
+    { name: 'Devanagari', re: /[\u0900-\u097F]/ },
+    { name: 'Bengali', re: /[\u0980-\u09FF]/ },
+    { name: 'Tamil', re: /[\u0B80-\u0BFF]/ },
+    { name: 'Telugu', re: /[\u0C00-\u0C7F]/ },
+    { name: 'Arabic', re: /[\u0600-\u06FF]/ },
+    { name: 'Cyrillic', re: /[\u0400-\u04FF]/ }
+  ];
+  lines.forEach((ln, i) => {
+    const hasLatin = /[A-Za-z]/.test(ln);
+    const found = scriptChecks.filter(s => s.re.test(ln)).map(s => s.name);
+    if (hasLatin && found.length > 0) {
+      report.push(`Line ${i+1}: Mixed scripts (Latin + ${found.join('/')})`);
+    }
+  });
+
+  // Syllable heuristic per line
+  lines.forEach((ln, i) => {
+    const syl = estimateSyllables(ln);
+    if (syl > 18) report.push(`Line ${i+1}: High syllable count (~${syl})`);
+  });
+
+  // Show report
+  const reportDiv = document.getElementById('checkReport');
+  if (report.length === 0) {
+    reportDiv.style.display = 'block';
+    reportDiv.textContent = 'No major issues detected.';
+  } else {
+    reportDiv.style.display = 'block';
+    reportDiv.innerHTML = '<strong>Reviewer-sim report:</strong><br>' + report.map(r => `- ${r}`).join('<br>');
+  }
+}
+
+function estimateSyllables(line) {
+  if (!line) return 0;
+  const words = line.split(/[^A-Za-z]+/).filter(Boolean);
+  let total = 0;
+  words.forEach(w => {
+    const lw = w.toLowerCase();
+    const vgroups = lw.replace(/e\b/, '').match(/[aeiouy]{1,2}/g);
+    total += (vgroups ? vgroups.length : 1);
+  });
+  return total;
+}
+
+// Per-line notes stored in localStorage keyed by song title+artist (fallback to 'untitled')
+function getSongKey() {
+  if (currentSongInfo && currentSongInfo.title) {
+    return `${currentSongInfo.title} - ${currentSongInfo.artist}`;
+  }
+  return 'untitled';
+}
+
+function saveNotesForEditor() {
+  const ta = document.getElementById('lyricsEditor');
+  if (!ta) return;
+  const lines = ta.value.split(/\r?\n/);
+  const notes = {};
+  lines.forEach((ln, i) => {
+    const m = ln.match(/\s*\{note:(.*)\}$/i);
+    if (m) notes[i] = m[1].trim();
+  });
+  localStorage.setItem('lyricsNotes:' + getSongKey(), JSON.stringify(notes));
+  alert('Notes saved locally');
+}
+
+function loadNotesForEditor() {
+  const ta = document.getElementById('lyricsEditor');
+  if (!ta) return;
+  const raw = localStorage.getItem('lyricsNotes:' + getSongKey());
+  if (!raw) return;
+  const notes = JSON.parse(raw);
+  const lines = ta.value.split(/\r?\n/);
+  Object.keys(notes).forEach(idx => {
+    const i = parseInt(idx, 10);
+    if (i < lines.length) {
+      // append note if not already present
+      if (!/\{note:/i.test(lines[i])) lines[i] = lines[i] + ' {note:' + notes[idx] + '}';
+    }
+  });
+  ta.value = lines.join('\n');
+}
+
+function toggleNotesView() {
+  const ta = document.getElementById('lyricsEditor');
+  if (!ta) return;
+  // simple toggle: if any line has {note: show/hide by removing or restoring from storage
+  const raw = localStorage.getItem('lyricsNotes:' + getSongKey());
+  if (!raw) {
+    // save existing inline notes to storage
+    saveNotesForEditor();
+    return;
+  }
+  // If notes exist in storage, remove inline notes from textarea
+  const notes = JSON.parse(raw);
+  const lines = ta.value.split(/\r?\n/);
+  Object.keys(notes).forEach(idx => {
+    const i = parseInt(idx, 10);
+    if (i < lines.length) lines[i] = lines[i].replace(/\s*\{note:.*\}$/i, '').trimRight();
+  });
+  ta.value = lines.join('\n');
+  localStorage.removeItem('lyricsNotes:' + getSongKey());
+}
+
     // Spotify Search
 async function spotifySearch() {
       const query = document.getElementById('sQuery').value.trim();
@@ -1457,10 +1823,11 @@ async function spotifySearch() {
               const spotifyTrackId = track.id;
               console.log('Spotify track selected:', { id: spotifyTrackId, name: track.name, artist: track.artists.map(a => a.name).join(', ') });
               const embedHtml = `<iframe src="https://open.spotify.com/embed/track/${spotifyTrackId}" width="100%" height="152" frameborder="0" allowtransparency="true" allow="autoplay; encrypted-media"></iframe>`;
+              // Use Spotify preview_url if available for timestamp capture
               updatePlayer(embedHtml, 'spotify', {
                 title: track.name,
                 artist: track.artists.map(a => a.name).join(', ')
-              }, spotifyTrackId);
+              }, spotifyTrackId, track.preview_url || null);
             };
     sResults.appendChild(div);
   });
@@ -1502,10 +1869,11 @@ async function appleSearch() {
           "embed.music.apple.com"
               );
               const embedHtml = `<iframe src="${embedUrl}" width="100%" height="150" frameborder="0" allowtransparency="true" allow="autoplay; encrypted-media"></iframe>`;
+              // iTunes API provides a previewUrl we can use
               updatePlayer(embedHtml, 'apple', {
                 title: track.trackName,
                 artist: track.artistName
-              }, null);
+              }, null, track.previewUrl || null);
     };
     aResults.appendChild(div);
   });
@@ -1542,13 +1910,14 @@ async function youtubeSearch() {
               <div class="result-artist">${video.snippet.channelTitle}</div>
             `;
     div.onclick = () => {
-              const embedHtml = `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${video.id.videoId}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+              // Use enablejsapi=1 for YouTube iframe to allow timestamp capture
+              const embedHtml = `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${video.id.videoId}?enablejsapi=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
               // Extract artist from title if possible (common format: "Song Name - Artist")
               const titleParts = video.snippet.title.split(' - ');
               updatePlayer(embedHtml, 'youtube', {
                 title: titleParts[0] || video.snippet.title,
                 artist: titleParts[1] || video.snippet.channelTitle
-              }, null);
+              }, null, null, { youtubeId: video.id.videoId });
     };
     yResults.appendChild(div);
   });

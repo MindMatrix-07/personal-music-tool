@@ -16,31 +16,55 @@ export default async function handler(req, res) {
       .find(row => row.startsWith("spotify_refresh="))
       ?.split("=")[1];
 
-    if (!refresh) {
-      res.status(401).json({ error: "Not logged in to Spotify" });
-      return;
+    let accessToken = null;
+
+    if (refresh) {
+      const tokenBody = new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refresh,
+        client_id: process.env.SPOTIFY_CLIENT_ID,
+        client_secret: process.env.SPOTIFY_CLIENT_SECRET
+      });
+
+      const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: tokenBody
+      });
+
+      if (tokenResponse.ok) {
+        const tokenData = await tokenResponse.json();
+        accessToken = tokenData.access_token;
+      }
     }
 
-    const tokenBody = new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: refresh,
-      client_id: process.env.SPOTIFY_CLIENT_ID,
-      client_secret: process.env.SPOTIFY_CLIENT_SECRET
-    });
+    // Fallback to Client Credentials Flow if no refresh token or refresh failed
+    if (!accessToken && process.env.SPOTIFY_CLIENT_ID && process.env.SPOTIFY_CLIENT_SECRET) {
+      console.log('Attempting Client Credentials flow...');
+      const tokenBody = new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: process.env.SPOTIFY_CLIENT_ID,
+        client_secret: process.env.SPOTIFY_CLIENT_SECRET
+      });
 
-    const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: tokenBody
-    });
+      const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: tokenBody
+      });
 
-    if (!tokenResponse.ok) {
-      res.status(401).json({ error: "Failed to refresh Spotify token" });
-      return;
+      if (tokenResponse.ok) {
+        const tokenData = await tokenResponse.json();
+        accessToken = tokenData.access_token;
+      } else {
+        console.error('Client Credentials flow failed:', await tokenResponse.text());
+      }
     }
 
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
+    if (!accessToken) {
+      res.status(401).json({ error: "Failed to authenticate with Spotify. Please login or check server configuration." });
+      return;
+    }
 
     // Get audio features from Spotify
     const featuresResponse = await fetch(

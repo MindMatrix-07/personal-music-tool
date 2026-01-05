@@ -1044,10 +1044,11 @@ body {
             </div>
           </div>
           <div class="playback-buttons">
+            <button class="playback-btn" onclick="rewind10s()" title="Rewind 10 seconds">⏪ 10s</button>
             <button class="playback-btn" id="pauseBtn" onclick="togglePause()" title="Pause/Play">
               <span id="pauseIcon">⏸️</span>
             </button>
-            <button class="playback-btn" onclick="rewind10s()" title="Rewind 10 seconds">⏪ 10s</button>
+            <button class="playback-btn" onclick="forward10s()" title="Forward 10 seconds">⏩ 10s</button>
             <button class="playback-btn" id="loopBtn" onclick="toggleLoop10s()" title="Loop 10 seconds">
               <span id="loopIcon">🔁</span> 10s
             </button>
@@ -1298,6 +1299,13 @@ body {
     function rewind10s() {
       if (!audioPlayer) return;
       audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+      updateProgressBar();
+    }
+    
+    // Forward 10 Seconds
+    function forward10s() {
+      if (!audioPlayer) return;
+      audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 10);
       updateProgressBar();
     }
     

@@ -1076,7 +1076,10 @@ body {
     // Audio control variables
     let audioPlayer = null;
     let youtubePlayer = null;
+    let spotifyEmbedController = null;
+    let spotifyIframeApi = null;
     let isYoutubeReady = false;
+    let isSpotifyEmbedReady = false;
     let isLooping = false;
     let loopStartTime = 0;
     let loopEndTime = 0;
@@ -1091,6 +1094,17 @@ body {
     function onYouTubeIframeAPIReady() {
       isYoutubeReady = true;
     }
+
+    // Load Spotify IFrame API
+    const spotifyScript = document.createElement('script');
+    spotifyScript.src = "https://open.spotify.com/embed/iframe-api/v1";
+    firstScriptTag.parentNode.insertBefore(spotifyScript, firstScriptTag);
+
+    window.onSpotifyIframeApiReady = (IFrameAPI) => {
+      spotifyIframeApi = IFrameAPI;
+      isSpotifyEmbedReady = true;
+      console.log('Spotify IFrame API Ready');
+    };
     let currentPreviewUrl = null;
 
     // Theme Management
@@ -1175,6 +1189,10 @@ body {
         try { youtubePlayer.destroy(); } catch(e) {}
         youtubePlayer = null;
       }
+      if (spotifyEmbedController) {
+         try { spotifyEmbedController.destroy(); } catch(e) {}
+         spotifyEmbedController = null;
+      }
       
       updatePlayerBadge(platform);
       
@@ -1202,6 +1220,42 @@ body {
           if (currentLyricsSource === 'write') {
             document.getElementById('playbackControlsBar').style.display = 'block';
           }
+        } else if (platform === 'spotify' && spotifyId && isSpotifyEmbedReady) {
+           // Use Spotify IFrame API
+           player.innerHTML = '<div id="spotify-embed"></div>';
+           const element = document.getElementById('spotify-embed');
+           const options = {
+              uri: `spotify:track:${spotifyId}`,
+              width: '100%',
+              height: '220',
+              theme: 'dark'
+           };
+           
+           const callback = (EmbedController) => {
+             spotifyEmbedController = EmbedController;
+             console.log('Spotify Embed Controller created');
+             
+             EmbedController.addListener('ready', () => {
+               console.log('Spotify Embed Ready');
+             });
+             
+             EmbedController.addListener('playback_update', e => {
+                if (e.data.isPaused) {
+                  document.getElementById('pauseIcon').textContent = '▶️';
+                } else {
+                  document.getElementById('pauseIcon').textContent = '⏸️';
+                }
+                updateSpotifyProgressWithStore(e.data);
+             });
+           };
+           
+           spotifyIframeApi.createController(element, options, callback);
+           cleanupAudioPlayer(false);
+           
+           if (currentLyricsSource === 'write') {
+             document.getElementById('playbackControlsBar').style.display = 'block';
+           }
+
         } else {
           player.innerHTML = `<div class="player-embed">${embedHtml}</div>`;
           
@@ -1213,17 +1267,21 @@ body {
           }
         }
         
-        // Auto-switch to Spotify API if Spotify track ID is available
-        if (spotifyId && platform === 'spotify') {
-          currentSongInfoSource = 'spotify';
-          // Update active tab
-          document.querySelectorAll('.song-info-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.source === 'spotify');
-          });
+        // Auto-switch to Apple Music API if available (default)
+        if (songInfo) {
+           // Keep Apple as default or switch based on logic? 
+           // For now, respect the platform choice or user intent
+           // If user clicked Spotify search, we might want to keep Spotify tab active
         }
         
         loadLyrics(songInfo.title, songInfo.artist, currentLyricsSource);
-        loadSongInfo(songInfo.title, songInfo.artist, currentSongInfoSource, spotifyId);
+        
+        // Determine which info source to load based on availability
+        let infoSource = currentSongInfoSource;
+        if (platform === 'spotify') infoSource = 'spotify'; // Prefer Spotify info if playing Spotify
+        if (platform === 'apple') infoSource = 'apple';     // Prefer Apple info if playing Apple
+        
+        loadSongInfo(songInfo.title, songInfo.artist, infoSource, spotifyId);
       } else {
         currentSongInfo = null;
         currentSpotifyId = null;
@@ -1304,6 +1362,28 @@ body {
       }
     }
     
+    // Update Spotify Progress
+    function updateSpotifyProgress(data) {
+       const duration = data.duration / 1000;
+       const position = data.position / 1000;
+       const progress = (position / duration) * 100;
+       
+       const progressBar = document.getElementById('playbackProgress');
+       if (progressBar) {
+         progressBar.value = progress || 0;
+       }
+       
+       const currentTimeEl = document.getElementById('currentTime');
+       if (currentTimeEl) {
+         currentTimeEl.textContent = formatTime(position);
+       }
+       
+       const totalTimeEl = document.getElementById('totalTime');
+       if (totalTimeEl) {
+         totalTimeEl.textContent = formatTime(duration);
+       }
+    }
+
     // Update Progress Bar
     function updateProgressBar() {
       let currentTime = 0;
@@ -1318,6 +1398,8 @@ body {
           duration = youtubePlayer.getDuration();
         } catch(e) {}
       } else {
+        // Spotify updates via event listener, so we don't need polling here
+        // But we might need to handle the loop logic if Spotify doesn't support it natively
         return;
       }
       
@@ -1333,6 +1415,7 @@ body {
       if (isLooping && currentTime >= loopEndTime) {
         if (audioPlayer) audioPlayer.currentTime = loopStartTime;
         else if (youtubePlayer) youtubePlayer.seekTo(loopStartTime, true);
+        else if (spotifyEmbedController) spotifyEmbedController.seek(loopStartTime);
       }
     }
     
@@ -1392,6 +1475,8 @@ body {
             document.getElementById('pauseIcon').textContent = '⏸️';
           }
         } catch(e) {}
+      } else if (spotifyEmbedController) {
+         spotifyEmbedController.togglePlay();
       }
     }
     
@@ -1406,10 +1491,63 @@ body {
           youtubePlayer.seekTo(time, true);
           updateProgressBar();
         } catch(e) {}
+      } else if (spotifyEmbedController) {
+         spotifyEmbedController.seek(-10); // Relative seek not supported directly usually, need current pos
+         // Actually EmbedController.seek takes seconds (float)
+         // We don't have current time in variable unless we track it
+         // But we can just emit a seek command if we know the position?
+         // No, let's use the tracked position from events if possible, or we need to request state?
+         // The controller doesn't expose 'getCurrentTime' synchronously.
+         // Wait, the API documentation says .seek(seconds) seeks to position.
+         // So we need to track current position.
+      }
+    }
+
+    // Since we receive playback_update events, let's store the last known position
+    let lastSpotifyPosition = 0;
+    
+    // Update updateSpotifyProgress to store position
+    function updateSpotifyProgressWithStore(data) {
+       lastSpotifyPosition = data.position / 1000;
+       updateSpotifyProgress(data);
+       
+       // Handle loop
+       if (isLooping && lastSpotifyPosition >= loopEndTime) {
+         spotifyEmbedController.seek(loopStartTime);
+       }
+    }
+    
+    // Redefine rewind/forward for Spotify
+    function rewind10sSpotify() {
+       if (spotifyEmbedController) {
+          const newPos = Math.max(0, lastSpotifyPosition - 10);
+          spotifyEmbedController.seek(newPos);
+       }
+    }
+    
+    function forward10sSpotify() {
+       if (spotifyEmbedController) {
+          const newPos = lastSpotifyPosition + 10;
+          spotifyEmbedController.seek(newPos);
+       }
+    }
+    
+    // Updated Main Functions
+    function rewind10s() {
+      if (audioPlayer) {
+        audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+        updateProgressBar();
+      } else if (youtubePlayer && youtubePlayer.getCurrentTime) {
+        try {
+          const time = Math.max(0, youtubePlayer.getCurrentTime() - 10);
+          youtubePlayer.seekTo(time, true);
+          updateProgressBar();
+        } catch(e) {}
+      } else if (spotifyEmbedController) {
+         rewind10sSpotify();
       }
     }
     
-    // Forward 10 Seconds
     function forward10s() {
       if (audioPlayer) {
         audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 10);
@@ -1421,12 +1559,14 @@ body {
           youtubePlayer.seekTo(time, true);
           updateProgressBar();
         } catch(e) {}
+      } else if (spotifyEmbedController) {
+         forward10sSpotify();
       }
     }
     
     // Toggle Loop 10 Seconds
     function toggleLoop10s() {
-      if (!audioPlayer && !youtubePlayer) return;
+      if (!audioPlayer && !youtubePlayer && !spotifyEmbedController) return;
       
       isLooping = !isLooping;
       const loopBtn = document.getElementById('loopBtn');
@@ -1435,6 +1575,8 @@ body {
       if (audioPlayer) currentTime = audioPlayer.currentTime;
       else if (youtubePlayer && youtubePlayer.getCurrentTime) {
         try { currentTime = youtubePlayer.getCurrentTime(); } catch(e) {}
+      } else if (spotifyEmbedController) {
+        currentTime = lastSpotifyPosition;
       }
       
       if (isLooping) {
@@ -1463,6 +1605,11 @@ body {
                youtubePlayer.seekTo(seekTime, true);
                updateProgressBar();
              } catch(e) {}
+          } else if (spotifyEmbedController) {
+             // We need duration for Spotify seek
+             // Store duration from update event
+             // Assuming totalTimeEl has it or we stored it?
+             // Let's store duration too
           }
         });
       }

@@ -443,36 +443,6 @@ body {
   text-align: left;
 }
 
-.lyrics-editor-toolbar {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.lyrics-editor-textarea {
-  width: 100%;
-  min-height: 220px;
-  max-height: 520px;
-  resize: vertical;
-  padding: 0.75rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  font-size: 0.95rem;
-  line-height: 1.6;
-  font-family: inherit;
-}
-
-.check-report {
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  border-radius: 8px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  font-size: 0.9rem;
-}
-
 .lyrics-loading {
   text-align: center;
   color: var(--text-secondary);
@@ -491,6 +461,129 @@ body {
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1rem;
+}
+
+/* Playback Controls Bar */
+.playback-controls-bar {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.playback-progress-container {
+  margin-bottom: 0.75rem;
+}
+
+.playback-progress {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-input);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.playback-progress::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: var(--spotify-green);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.playback-progress::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: var(--spotify-green-hover);
+}
+
+.playback-progress::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: var(--spotify-green);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.playback-progress::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  background: var(--spotify-green-hover);
+}
+
+.playback-time {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+.playback-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.playback-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.playback-btn:hover {
+  background: var(--bg-input);
+  border-color: var(--spotify-green);
+  transform: translateY(-2px);
+}
+
+.playback-btn.active {
+  background: var(--spotify-green);
+  color: white;
+  border-color: var(--spotify-green);
+}
+
+/* Lyrics Editor */
+.lyrics-editor-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lyrics-editor-textarea {
+  width: 100%;
+  min-height: 300px;
+  max-height: 600px;
+  resize: vertical;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  font-family: inherit;
+}
+
+.lyrics-editor-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .lyrics-tab {
@@ -815,35 +908,6 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
 }
-
-/* Lyrics editor overlay for per-line highlights */
-.editor-wrap {
-  position: relative;
-}
-.lyrics-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  font-family: inherit;
-  font-size: 0.95rem;
-  line-height: 1.6;
-  white-space: pre-wrap;
-  padding: 0.75rem;
-  overflow: hidden;
-  color: transparent; /* keep text invisible but allow selection via JS if needed */
-}
-.lyrics-overlay .line {
-  display: block;
-}
-.lyrics-overlay .highlight {
-  background: rgba(255, 210, 77, 0.18);
-  border-left: 3px solid rgba(255, 180, 0, 0.9);
-  color: inherit;
-  pointer-events: auto;
-}
 </style>
 </head>
 
@@ -865,7 +929,6 @@ body {
       <span id="themeIcon">🌙</span>
       <span id="themeText">Dark</span>
     </button>
-    <button class="search-btn" onclick="showDemo()" style="margin-left:0.75rem">Show Demo</button>
   </div>
 
   <!-- Main Container -->
@@ -952,8 +1015,7 @@ body {
           <div class="song-info-title">Song Analysis</div>
         </div>
         <div class="song-info-tabs">
-          <button class="song-info-tab active" data-source="tunebat" onclick="switchSongInfoSource('tunebat')">Tunebat</button>
-          <button class="song-info-tab" data-source="statsfm" onclick="switchSongInfoSource('statsfm')">Stats.fm</button>
+          <button class="song-info-tab active" data-source="spotify" onclick="switchSongInfoSource('spotify')">Spotify API</button>
         </div>
         <div class="song-info-content" id="songInfoContent">
           <div class="song-info-loading">Loading song info...</div>
@@ -970,7 +1032,28 @@ body {
           <button class="lyrics-tab" data-source="best" onclick="switchLyricsSource('best')">Best Lyrics</button>
           <button class="lyrics-tab" data-source="genius" onclick="switchLyricsSource('genius')">Genius</button>
           <button class="lyrics-tab" data-source="lrclib" onclick="switchLyricsSource('lrclib')">LRCLib</button>
+          <button class="lyrics-tab" data-source="write" onclick="switchLyricsSource('write')">Write</button>
         </div>
+        
+        <!-- Playback Controls Bar -->
+        <div class="playback-controls-bar" id="playbackControlsBar" style="display: none;">
+          <div class="playback-progress-container">
+            <input type="range" id="playbackProgress" class="playback-progress" min="0" max="100" value="0" step="0.1">
+            <div class="playback-time">
+              <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+            </div>
+          </div>
+          <div class="playback-buttons">
+            <button class="playback-btn" id="pauseBtn" onclick="togglePause()" title="Pause/Play">
+              <span id="pauseIcon">⏸️</span>
+            </button>
+            <button class="playback-btn" onclick="rewind10s()" title="Rewind 10 seconds">⏪ 10s</button>
+            <button class="playback-btn" id="loopBtn" onclick="toggleLoop10s()" title="Loop 10 seconds">
+              <span id="loopIcon">🔁</span> 10s
+            </button>
+          </div>
+        </div>
+        
         <div class="lyrics-content" id="lyricsContent">
           <div class="lyrics-loading">Loading lyrics...</div>
         </div>
@@ -984,8 +1067,16 @@ body {
     let currentPlayerPlatform = null;
     let currentSongInfo = null;
     let currentLyricsSource = 'best'; // Default to best lyrics
-    let currentSongInfoSource = 'tunebat';
+    let currentSongInfoSource = 'spotify';
     let currentSpotifyId = null;
+    
+    // Audio control variables
+    let audioPlayer = null;
+    let isLooping = false;
+    let loopStartTime = 0;
+    let loopEndTime = 0;
+    let progressUpdateInterval = null;
+    let currentPreviewUrl = null;
 
     // Theme Management
     const themeToggle = document.getElementById('themeToggle');
@@ -1061,145 +1152,186 @@ body {
     }
 
     // Update Player
-    function updatePlayer(embedHtml, platform, songInfo = null, spotifyId = null, previewUrl = null, extra = {}) {
+    function updatePlayer(embedHtml, platform, songInfo = null, spotifyId = null, previewUrl = null) {
       const player = document.getElementById('player');
-      // Build embed area and controls area
-      player.innerHTML = `
-        <div class="player-embed">${embedHtml}</div>
-        <div id="playerControls" style="margin-top:0.75rem"></div>
-      `;
+      player.innerHTML = `<div class="player-embed">${embedHtml}</div>`;
       updatePlayerBadge(platform);
-
-      // If previewUrl is provided, create HTML5 audio with capture button
-      if (previewUrl) {
-        setupAudioPreview(previewUrl, platform);
-      }
-
-      // If extra.youtubeId is provided, initialize YouTube JS API player for timestamp capture
-      if (extra && extra.youtubeId) {
-        setupYouTubePlayer(extra.youtubeId);
-      }
-
+      
       // Store song info for lyrics and song analysis
       if (songInfo) {
         currentSongInfo = songInfo;
         currentSpotifyId = spotifyId;
-
-        // Auto-switch to Stats.fm if Spotify track ID is available
+        currentPreviewUrl = previewUrl;
+        
+        // Setup audio preview if available
+        if (previewUrl) {
+          setupAudioPreview(previewUrl);
+        } else {
+          cleanupAudioPlayer();
+        }
+        
+        // Auto-switch to Spotify API if Spotify track ID is available
         if (spotifyId && platform === 'spotify') {
-          currentSongInfoSource = 'statsfm';
+          currentSongInfoSource = 'spotify';
           // Update active tab
           document.querySelectorAll('.song-info-tab').forEach(tab => {
-            tab.classList.toggle('active', tab.dataset.source === 'statsfm');
+            tab.classList.toggle('active', tab.dataset.source === 'spotify');
           });
         }
-
+        
         loadLyrics(songInfo.title, songInfo.artist, currentLyricsSource);
         loadSongInfo(songInfo.title, songInfo.artist, currentSongInfoSource, spotifyId);
       } else {
         currentSongInfo = null;
         currentSpotifyId = null;
+        currentPreviewUrl = null;
+        cleanupAudioPlayer();
         document.getElementById('lyricsSection').style.display = 'none';
         document.getElementById('songInfoSection').style.display = 'none';
       }
-
+      
       // Auto-switch to the platform tab
       if (platform !== currentPlatform) {
         switchPlatform(platform);
       }
     }
-
-    // Setup audio preview controls and a capture button to insert timestamp
-    function setupAudioPreview(previewUrl, platform) {
-      const controls = document.getElementById('playerControls');
-      if (!controls) return;
-      controls.innerHTML = `
-        <audio id="previewAudio" controls src="${previewUrl}" style="width:100%"></audio>
-        <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
-          <button class="search-btn" onclick="captureAudioTime()">Capture Time</button>
-          <button class="search-btn" onclick="insertCurrentTimeIntoEditor()">Insert Current</button>
-          <button class="search-btn" onclick="saveNotesForEditor()">Save Notes</button>
-        </div>
-      `;
+    
+    // Setup Audio Preview Player
+    function setupAudioPreview(previewUrl) {
+      cleanupAudioPlayer();
+      
+      if (!previewUrl) return;
+      
+      audioPlayer = new Audio(previewUrl);
+      audioPlayer.preload = 'auto';
+      
+      // Update progress bar on timeupdate
+      audioPlayer.addEventListener('timeupdate', updateProgressBar);
+      audioPlayer.addEventListener('loadedmetadata', () => {
+        updateTotalTime();
+      });
+      audioPlayer.addEventListener('ended', () => {
+        if (isLooping) {
+          audioPlayer.currentTime = loopStartTime;
+          audioPlayer.play();
+        }
+      });
+      
+      // Show playback controls if in write mode
+      if (currentLyricsSource === 'write') {
+        document.getElementById('playbackControlsBar').style.display = 'block';
+      }
     }
-
-    function captureAudioTime() {
-      const audio = document.getElementById('previewAudio');
-      if (!audio) return alert('No preview audio available');
-      const t = audio.currentTime || 0;
-      const stamp = formatTimestamp(t);
-      promptInsertOrCopy(stamp);
+    
+    // Cleanup Audio Player
+    function cleanupAudioPlayer() {
+      if (audioPlayer) {
+        audioPlayer.pause();
+        audioPlayer = null;
+      }
+      if (progressUpdateInterval) {
+        clearInterval(progressUpdateInterval);
+        progressUpdateInterval = null;
+      }
+      isLooping = false;
+      document.getElementById('playbackControlsBar').style.display = 'none';
     }
-
-    function insertCurrentTimeIntoEditor() {
-      const audio = document.getElementById('previewAudio');
-      if (!audio) return alert('No preview audio available');
-      const t = audio.currentTime || 0;
-      const stamp = formatTimestamp(t);
-      insertAtCursor(document.getElementById('lyricsEditor'), stamp + '\n');
+    
+    // Update Progress Bar
+    function updateProgressBar() {
+      if (!audioPlayer || !audioPlayer.duration) return;
+      
+      const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+      const progressBar = document.getElementById('playbackProgress');
+      if (progressBar) {
+        progressBar.value = progress || 0;
+      }
+      
+      updateCurrentTime();
+      
+      // Handle 10-second loop
+      if (isLooping && audioPlayer.currentTime >= loopEndTime) {
+        audioPlayer.currentTime = loopStartTime;
+      }
     }
-
-    function promptInsertOrCopy(stamp) {
-      if (confirm(`Insert timestamp ${stamp} into lyrics editor? (Cancel to copy)`)) {
-        const ta = document.getElementById('lyricsEditor');
-        if (ta) insertAtCursor(ta, stamp + '\n');
+    
+    // Update Current Time Display
+    function updateCurrentTime() {
+      if (!audioPlayer) return;
+      const currentTimeEl = document.getElementById('currentTime');
+      if (currentTimeEl) {
+        currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+      }
+    }
+    
+    // Update Total Time Display
+    function updateTotalTime() {
+      if (!audioPlayer) return;
+      const totalTimeEl = document.getElementById('totalTime');
+      if (totalTimeEl) {
+        totalTimeEl.textContent = formatTime(audioPlayer.duration);
+      }
+    }
+    
+    // Format Time
+    function formatTime(seconds) {
+      if (!seconds || isNaN(seconds)) return '0:00';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+    
+    // Toggle Pause
+    function togglePause() {
+      if (!audioPlayer) return;
+      
+      if (audioPlayer.paused) {
+        audioPlayer.play();
+        document.getElementById('pauseIcon').textContent = '⏸️';
       } else {
-        navigator.clipboard && navigator.clipboard.writeText(stamp).then(()=>alert('Copied timestamp to clipboard'));
+        audioPlayer.pause();
+        document.getElementById('pauseIcon').textContent = '▶️';
       }
     }
-
-    // --- YouTube player integration for timestamp capture ---
-    let ytPlayer = null;
-    function setupYouTubePlayer(videoId) {
-      // If YouTube IFrame API not loaded, dynamic load
-      if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
-        const tag = document.createElement('script');
-        tag.src = 'https://www.youtube.com/iframe_api';
-        document.head.appendChild(tag);
+    
+    // Rewind 10 Seconds
+    function rewind10s() {
+      if (!audioPlayer) return;
+      audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+      updateProgressBar();
+    }
+    
+    // Toggle Loop 10 Seconds
+    function toggleLoop10s() {
+      if (!audioPlayer) return;
+      
+      isLooping = !isLooping;
+      const loopBtn = document.getElementById('loopBtn');
+      
+      if (isLooping) {
+        loopStartTime = audioPlayer.currentTime;
+        loopEndTime = loopStartTime + 10;
+        loopBtn.classList.add('active');
+        document.getElementById('loopIcon').textContent = '🔂';
+      } else {
+        loopBtn.classList.remove('active');
+        document.getElementById('loopIcon').textContent = '🔁';
       }
-
-      // Create or replace iframe with enablejsapi=1
-      const embed = document.querySelector('.player-embed iframe');
-      if (embed) {
-        const src = embed.src;
-        if (!/enablejsapi=1/.test(src)) {
-          embed.src = src + (src.indexOf('?') === -1 ? '?' : '&') + 'enablejsapi=1';
-        }
-        embed.id = 'ytPlayerIframe';
+    }
+    
+    // Handle Progress Bar Seek
+    document.addEventListener('DOMContentLoaded', () => {
+      const progressBar = document.getElementById('playbackProgress');
+      if (progressBar) {
+        progressBar.addEventListener('input', (e) => {
+          if (audioPlayer && audioPlayer.duration) {
+            const seekTime = (e.target.value / 100) * audioPlayer.duration;
+            audioPlayer.currentTime = seekTime;
+            updateProgressBar();
+          }
+        });
       }
-
-      // Poll for YT availability then create player
-      const tryCreate = () => {
-        if (typeof YT !== 'undefined' && typeof YT.Player !== 'undefined') {
-          if (ytPlayer) ytPlayer.destroy();
-          ytPlayer = new YT.Player('ytPlayerIframe', {
-            events: {
-              onReady: () => {
-                const controls = document.getElementById('playerControls');
-                if (controls) controls.innerHTML = `<div style="display:flex;gap:0.5rem"><button class="search-btn" onclick="captureYouTubeTime()">Capture Time</button><button class="search-btn" onclick="insertCurrentTimeIntoEditorYT()">Insert Current</button></div>`;
-              }
-            }
-          });
-        } else {
-          setTimeout(tryCreate, 300);
-        }
-      };
-      tryCreate();
-    }
-
-    function captureYouTubeTime() {
-      if (!ytPlayer) return alert('YouTube player not ready');
-      const t = ytPlayer.getCurrentTime();
-      const stamp = formatTimestamp(t);
-      promptInsertOrCopy(stamp);
-    }
-
-    function insertCurrentTimeIntoEditorYT() {
-      if (!ytPlayer) return alert('YouTube player not ready');
-      const t = ytPlayer.getCurrentTime();
-      const stamp = formatTimestamp(t);
-      insertAtCursor(document.getElementById('lyricsEditor'), stamp + '\n');
-    }
+    });
     
     // Switch Song Info Source
     function switchSongInfoSource(source) {
@@ -1209,14 +1341,13 @@ body {
       });
       
       if (currentSongInfo) {
-        // Always pass the Spotify track ID if available, regardless of source
-        // Stats.fm will use it, Tunebat will ignore it
+        // Always pass the Spotify track ID if available
         loadSongInfo(currentSongInfo.title, currentSongInfo.artist, source, currentSpotifyId);
       }
     }
     
     // Load Song Info
-    async function loadSongInfo(title, artist, source = 'tunebat', spotifyId = null) {
+    async function loadSongInfo(title, artist, source = 'spotify', spotifyId = null) {
       const songInfoSection = document.getElementById('songInfoSection');
       const songInfoContent = document.getElementById('songInfoContent');
       
@@ -1226,27 +1357,20 @@ body {
       try {
         let data = null;
         
-        if (source === 'statsfm') {
-          // Stats.fm requires Spotify track ID - use it if available
-          if (spotifyId) {
-            data = await fetchStatsFmInfo(title, artist, spotifyId);
-          } else {
-            // If no Spotify ID but Stats.fm selected, try to find it or show error
-            songInfoContent.innerHTML = '<div class="song-info-error">Stats.fm requires Spotify track. Please select a Spotify track or switch to Tunebat.</div>';
-            return;
-          }
-        } else {
-          // Tunebat can use Spotify ID if available, or search by title/artist
-          data = await fetchTunebatInfo(title, artist, spotifyId);
+        // Both sources require Spotify track ID
+        if (!spotifyId) {
+          songInfoContent.innerHTML = '<div class="song-info-error">Spotify track ID required. Please select a Spotify track.</div>';
+          return;
+        }
+        
+        if (source === 'spotify') {
+          data = await fetchSpotifyInfo(title, artist, spotifyId);
         }
         
         if (data && !data.error) {
           displaySongInfo(data);
         } else {
-          // If Stats.fm fails and we have Spotify ID, suggest trying Tunebat
-          const errorMsg = source === 'statsfm' && spotifyId 
-            ? `${data?.error || 'Stats.fm data unavailable. Try switching to Tunebat.'}`
-            : `${data?.error || 'Song info not found. Try switching sources.'}`;
+          const errorMsg = data?.error || 'Song info unavailable.';
           songInfoContent.innerHTML = `<div class="song-info-error">${errorMsg}</div>`;
         }
       } catch (error) {
@@ -1255,47 +1379,24 @@ body {
       }
     }
     
-    // Fetch Tunebat Info
-    async function fetchTunebatInfo(title, artist, spotifyId = null) {
+    // Fetch Spotify Info
+    async function fetchSpotifyInfo(title, artist, spotifyId) {
       try {
-        let url = `/api/tunebat?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
-        if (spotifyId) {
-          url += `&spotifyId=${spotifyId}`;
-        }
-        const response = await fetch(url);
+        const url = `/api/spotify-info?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&spotifyId=${encodeURIComponent(spotifyId)}`;
         
-        if (response.ok) {
-          return await response.json();
-        }
-        return { error: 'Tunebat API unavailable' };
-      } catch (error) {
-        console.error('Tunebat fetch error:', error);
-        return { error: 'Failed to fetch from Tunebat' };
-      }
-    }
-    
-    // Fetch Stats.fm Info
-    async function fetchStatsFmInfo(title, artist, spotifyId) {
-      try {
-        // Always include spotifyId in URL, even if null/undefined (API will handle it)
-        let url = `/api/statsfm?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
-        if (spotifyId) {
-          url += `&spotifyId=${encodeURIComponent(spotifyId)}`;
-        }
-        
-        console.log('Fetching Stats.fm with:', { title, artist, spotifyId, url });
+        console.log('Fetching Spotify Info with:', { title, artist, spotifyId, url });
         const response = await fetch(url);
         
         if (response.ok) {
           const data = await response.json();
-          console.log('Stats.fm response:', data);
+          console.log('Spotify Info response:', data);
           return data;
         }
-        const errorData = await response.json().catch(() => ({ error: 'Stats.fm data unavailable' }));
+        const errorData = await response.json().catch(() => ({ error: 'Spotify API data unavailable' }));
         return errorData;
       } catch (error) {
-        console.error('Stats.fm fetch error:', error);
-        return { error: 'Failed to fetch from Stats.fm: ' + error.message };
+        console.error('Spotify Info fetch error:', error);
+        return { error: 'Failed to fetch from Spotify API: ' + error.message };
       }
     }
     
@@ -1401,6 +1502,76 @@ body {
         });
       }
       
+      // Additional Spotify API info
+      if (data.albumName) {
+        infoItems.push({
+          label: 'Album',
+          value: data.albumName
+        });
+      }
+      
+      if (data.releaseDate) {
+        infoItems.push({
+          label: 'Release',
+          value: data.releaseDate
+        });
+      }
+      
+      if (data.explicit !== undefined) {
+        infoItems.push({
+          label: 'Explicit',
+          value: data.explicit ? 'Yes' : 'No'
+        });
+      }
+      
+      if (data.albumType) {
+        infoItems.push({
+          label: 'Type',
+          value: data.albumType.charAt(0).toUpperCase() + data.albumType.slice(1)
+        });
+      }
+      
+      if (data.totalTracks) {
+        infoItems.push({
+          label: 'Tracks',
+          value: data.totalTracks.toString()
+        });
+      }
+      
+      if (data.artistGenres && data.artistGenres.length > 0) {
+        infoItems.push({
+          label: 'Genres',
+          value: data.artistGenres.slice(0, 3).join(', ')
+        });
+      }
+      
+      if (data.artistFollowers !== null && data.artistFollowers !== undefined) {
+        const followers = data.artistFollowers >= 1000000 
+          ? (data.artistFollowers / 1000000).toFixed(1) + 'M'
+          : data.artistFollowers >= 1000
+          ? (data.artistFollowers / 1000).toFixed(1) + 'K'
+          : data.artistFollowers.toString();
+        infoItems.push({
+          label: 'Followers',
+          value: followers
+        });
+      }
+      
+      if (data.artistPopularity !== null && data.artistPopularity !== undefined) {
+        infoItems.push({
+          label: 'Artist Pop',
+          value: `${data.artistPopularity}%`,
+          progress: data.artistPopularity
+        });
+      }
+      
+      if (data.label) {
+        infoItems.push({
+          label: 'Label',
+          value: data.label
+        });
+      }
+      
       if (infoItems.length === 0) {
         songInfoContent.innerHTML = '<div class="song-info-error">No song data available</div>';
         return;
@@ -1432,6 +1603,17 @@ body {
         tab.classList.toggle('active', tab.dataset.source === source);
       });
       
+      // Show/hide playback controls based on write mode
+      const playbackBar = document.getElementById('playbackControlsBar');
+      if (source === 'write' && currentPreviewUrl) {
+        if (!audioPlayer && currentPreviewUrl) {
+          setupAudioPreview(currentPreviewUrl);
+        }
+        playbackBar.style.display = 'block';
+      } else {
+        playbackBar.style.display = 'none';
+      }
+      
       if (currentSongInfo) {
         loadLyrics(currentSongInfo.title, currentSongInfo.artist, source);
       }
@@ -1450,7 +1632,12 @@ body {
         let lyrics = null;
         let sourceName = '';
         
-        if (source === 'best') {
+        if (source === 'write') {
+          // Show lyrics writing editor
+          setupLyricsWriter();
+          lyricsSource.textContent = 'Write';
+          return;
+        } else if (source === 'best') {
           const result = await fetchBestLyrics(title, artist);
           if (result && result.lyrics) {
             lyrics = result.lyrics;
@@ -1471,7 +1658,7 @@ body {
         }
         
         if (lyrics) {
-          setupLyricsEditor(lyrics, sourceName || 'Lyrics');
+          lyricsContent.innerHTML = `<div class="lyrics-content">${lyrics}</div>`;
         } else {
           lyricsContent.innerHTML = '<div class="lyrics-error">Lyrics not found. Try switching sources.</div>';
         }
@@ -1523,6 +1710,73 @@ body {
         console.error('Genius fetch error:', error);
         // Fallback to LRCLib
         return await fetchLRCLibLyrics(title, artist);
+      }
+    }
+    
+    // Setup Lyrics Writer
+    function setupLyricsWriter() {
+      const lyricsContent = document.getElementById('lyricsContent');
+      const savedLyrics = localStorage.getItem(`lyrics_${getSongKey()}`) || '';
+      
+      lyricsContent.innerHTML = `
+        <div class="lyrics-editor-container">
+          <div class="lyrics-editor-toolbar">
+            <button class="search-btn" onclick="insertTimestamp()" title="Insert timestamp at current position">Insert Time</button>
+            <button class="search-btn" onclick="saveLyrics()" title="Save lyrics">Save</button>
+            <button class="search-btn" onclick="clearLyrics()" title="Clear editor">Clear</button>
+          </div>
+          <textarea id="lyricsEditor" class="lyrics-editor-textarea" placeholder="Start writing your lyrics here...">${savedLyrics}</textarea>
+        </div>
+      `;
+    }
+    
+    function getSongKey() {
+      if (currentSongInfo && currentSongInfo.title) {
+        return `${currentSongInfo.title} - ${currentSongInfo.artist}`;
+      }
+      return 'untitled';
+    }
+    
+    function insertTimestamp() {
+      if (!audioPlayer) {
+        alert('No audio playing. Please select a song with preview.');
+        return;
+      }
+      const editor = document.getElementById('lyricsEditor');
+      if (!editor) return;
+      
+      const time = audioPlayer.currentTime;
+      const timestamp = formatTimestamp(time);
+      const cursorPos = editor.selectionStart;
+      const textBefore = editor.value.substring(0, cursorPos);
+      const textAfter = editor.value.substring(editor.selectionEnd);
+      editor.value = textBefore + timestamp + '\n' + textAfter;
+      editor.focus();
+      editor.setSelectionRange(cursorPos + timestamp.length + 1, cursorPos + timestamp.length + 1);
+    }
+    
+    function formatTimestamp(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      const centis = Math.floor((seconds % 1) * 100);
+      return `[${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${centis.toString().padStart(2, '0')}]`;
+    }
+    
+    function saveLyrics() {
+      const editor = document.getElementById('lyricsEditor');
+      if (!editor) return;
+      
+      localStorage.setItem(`lyrics_${getSongKey()}`, editor.value);
+      alert('Lyrics saved!');
+    }
+    
+    function clearLyrics() {
+      if (confirm('Are you sure you want to clear the lyrics editor?')) {
+        const editor = document.getElementById('lyricsEditor');
+        if (editor) {
+          editor.value = '';
+          localStorage.removeItem(`lyrics_${getSongKey()}`);
+        }
       }
     }
     
@@ -1587,418 +1841,6 @@ function login() {
   window.location.href = "/api/login";
 }
 
-// --- Lyrics editor helpers ---
-function setupLyricsEditor(text, sourceName) {
-  const lyricsContent = document.getElementById('lyricsContent');
-  const html = `
-    <div class="lyrics-editor-toolbar">
-      <button class="search-btn" onclick="promptInsertTimestamp()">Insert Timestamp</button>
-      <button class="search-btn" onclick="runChecks()">Run Checks</button>
-      <button class="search-btn" onclick="exportReport()">Export Report</button>
-      <button class="search-btn" onclick="toggleNotesView()">Toggle Notes</button>
-      <div style="margin-left:auto;color:var(--text-secondary);padding:0.5rem 0.75rem;border-radius:8px;background:transparent;">${sourceName}</div>
-    </div>
-    <div class="editor-wrap">
-      <div id="lyricsOverlay" class="lyrics-overlay" aria-hidden="true"></div>
-      <textarea id="lyricsEditor" class="lyrics-editor-textarea"></textarea>
-    </div>
-    <div id="checkReport" class="check-report" style="display:none"></div>
-  `;
-  lyricsContent.innerHTML = html;
-  const ta = document.getElementById('lyricsEditor');
-  ta.value = text;
-  loadNotesForEditor();
-  // attach overlay syncing and live-checks
-  const overlay = document.getElementById('lyricsOverlay');
-  function syncScroll() {
-    if (overlay) overlay.scrollTop = ta.scrollTop;
-  }
-  ta.addEventListener('scroll', syncScroll);
-  ta.addEventListener('input', debounce(() => runChecks(), 400));
-  // render initial checks and overlay
-  runChecks();
-}
-
-function promptInsertTimestamp() {
-  // Prompt for time (seconds or mm:ss[.xx]) and insert formatted [mm:ss.xx]
-  const input = prompt('Enter time (seconds or mm:ss[.xx]):');
-  if (!input) return;
-  const seconds = parseTimeInput(input);
-  if (isNaN(seconds)) {
-    alert('Could not parse time. Use seconds or mm:ss[.xx]');
-    return;
-  }
-  const stamp = formatTimestamp(seconds);
-  insertAtCursor(document.getElementById('lyricsEditor'), stamp + '\n');
-}
-
-function parseTimeInput(s) {
-  s = s.trim();
-  if (/^\d+:/.test(s)) {
-    const parts = s.split(':');
-    const mm = parseInt(parts[0], 10);
-    const ss = parseFloat(parts[1]);
-    return mm * 60 + ss;
-  }
-  return parseFloat(s);
-}
-
-function formatTimestamp(seconds) {
-  const mm = Math.floor(seconds / 60);
-  const ss = Math.floor(seconds % 60);
-  const xx = Math.floor((seconds - Math.floor(seconds)) * 100).toString().padStart(2, '0');
-  return `[${mm.toString().padStart(2,'0')}:${ss.toString().padStart(2,'0')}.${xx}]`;
-}
-
-function insertAtCursor(el, text) {
-  const start = el.selectionStart || 0;
-  const end = el.selectionEnd || 0;
-  const value = el.value || '';
-  el.value = value.slice(0, start) + text + value.slice(end);
-  const pos = start + text.length;
-  el.selectionStart = el.selectionEnd = pos;
-  el.focus();
-}
-
-function runChecks() {
-  const ta = document.getElementById('lyricsEditor');
-  if (!ta) return;
-  const text = ta.value;
-  const lines = text.split(/\r?\n/);
-  const report = [];
-  const issues = [];
-
-  // Line-length check
-  const maxLen = 42;
-  lines.forEach((ln, i) => {
-    if (ln.trim().length === 0) return;
-    if (ln.length > maxLen) {
-      const msg = `Line ${i+1}: Too long (${ln.length} chars)`;
-      report.push(msg);
-      issues.push({ line: i+1, message: msg });
-    }
-  });
-
-  // Repetition / structure: detect repeated multi-line blocks (chorus/verse)
-  const blockMatches = [];
-  const minBlock = 2; // minimum lines in a repeated block
-  const maxBlock = 8; // max block length to check
-  for (let size = maxBlock; size >= minBlock; size--) {
-    const seen = {};
-    for (let i = 0; i + size <= lines.length; i++) {
-      const block = lines.slice(i, i + size).map(l => l.trim().toLowerCase()).join('\n');
-      if (!block || /^\s*$/.test(block)) continue;
-      seen[block] = seen[block] || [];
-      seen[block].push(i+1);
-    }
-    Object.keys(seen).forEach(b => {
-      if (seen[b].length > 1) {
-        // record as a repeated block
-        blockMatches.push({ size, occurrences: seen[b] });
-        const msg = `Repeated ${size}-line block at starts: ${seen[b].join(', ')}`;
-        report.push(msg);
-        seen[b].forEach(n => issues.push({ line: n, message: `Repeated ${size}-line block (starts at ${seen[b].join(', ')})` }));
-        // zero out lines in this block to avoid duplicate smaller-block reports
-        seen[b].forEach(start => {
-          for (let k = 0; k < size; k++) {
-            const idx = start - 1 + k;
-            if (idx >= 0 && idx < lines.length) lines[idx] = lines[idx];
-          }
-        });
-      }
-    });
-  }
-
-  // Proper-noun / capitalization check against a small dictionary
-  // Proper-noun / capitalization detection
-  const properNouns = ['Mumbai','India','Taylor','Beyonce','Ariana','Rihanna','Gandhi'];
-  // Build a file-wide word capitalization map to find inconsistent usages
-  const wordCaps = {};
-  lines.forEach((ln, i) => {
-    const words = ln.split(/[^A-Za-z\u00C0-\u024F'-]+/).filter(Boolean);
-    words.forEach(w => {
-      const key = w.toLowerCase();
-      wordCaps[key] = wordCaps[key] || new Set();
-      wordCaps[key].add(w);
-    });
-  });
-  // Flag words that appear with inconsistent capitalization (e.g., "mumbai" and "Mumbai")
-  Object.keys(wordCaps).forEach(k => {
-    const variants = Array.from(wordCaps[k]);
-    if (variants.length > 1) {
-      // prefer Title Case as canonical suggestion
-      const suggestion = variants.find(v => /^[A-Z][a-z]/.test(v)) || variants[0];
-      // find all lines containing lowercase-only occurrences to warn
-      lines.forEach((ln, i) => {
-        const re = new RegExp(`\\b${k}\\b`, 'g');
-        if (re.test(ln) && !new RegExp(`\\b${suggestion}\\b`).test(ln)) {
-          const msg = `Line ${i+1}: Inconsistent capitalization for "${k}" (suggest "${suggestion}")`;
-          report.push(msg);
-          issues.push({ line: i+1, message: msg });
-        }
-      });
-    }
-  });
-  // Also flag known proper nouns if present but lowercase
-  lines.forEach((ln, i) => {
-    properNouns.forEach(name => {
-      const reLower = new RegExp(`\\b${name.toLowerCase()}\\b`);
-      if (reLower.test(ln) && !new RegExp(`\\b${name}\\b`).test(ln)) {
-        const msg = `Line ${i+1}: Proper noun "${name}" may be incorrectly capitalized`;
-        report.push(msg);
-        issues.push({ line: i+1, message: msg });
-      }
-    });
-  });
-
-  // Punctuation / question-mark
-  const questionWords = /\b(what|why|how|when|where|who)\b/i;
-  lines.forEach((ln, i) => {
-    if (questionWords.test(ln) && !/\?$/.test(ln.trim())) {
-      const msg = `Line ${i+1}: Looks like a question but missing '?'`;
-      report.push(msg);
-      issues.push({ line: i+1, message: msg });
-    }
-    if (/\.\.\./.test(ln) && !/\.\.\./.test(ln.trim())) {
-      const msg = `Line ${i+1}: Inconsistent ellipses`;
-      report.push(msg);
-      issues.push({ line: i+1, message: msg });
-    }
-  });
-
-  // Capitalization
-  lines.forEach((ln, i) => {
-    const trimmed = ln.trim();
-    if (!trimmed) return;
-    const first = trimmed.charAt(0);
-    if (first === first.toLowerCase() && /[A-Za-z]/.test(first)) {
-      const msg = `Line ${i+1}: Starts with lowercase letter`;
-      report.push(msg);
-      issues.push({ line: i+1, message: msg });
-    }
-  });
-
-  // Script mixing detection (Latin + Indic/Cyrillic/Arabic ranges)
-  const scriptChecks = [
-    { name: 'Devanagari', re: /[\u0900-\u097F]/ },
-    { name: 'Bengali', re: /[\u0980-\u09FF]/ },
-    { name: 'Tamil', re: /[\u0B80-\u0BFF]/ },
-    { name: 'Telugu', re: /[\u0C00-\u0C7F]/ },
-    { name: 'Arabic', re: /[\u0600-\u06FF]/ },
-    { name: 'Cyrillic', re: /[\u0400-\u04FF]/ }
-  ];
-  lines.forEach((ln, i) => {
-    const hasLatin = /[A-Za-z]/.test(ln);
-    const found = scriptChecks.filter(s => s.re.test(ln)).map(s => s.name);
-    if (hasLatin && found.length > 0) {
-      const msg = `Line ${i+1}: Mixed scripts (Latin + ${found.join('/')})`;
-      report.push(msg);
-      issues.push({ line: i+1, message: msg });
-    }
-  });
-
-  // Syllable heuristic per line
-  lines.forEach((ln, i) => {
-    const syl = estimateSyllables(ln);
-    if (syl > 18) {
-      const msg = `Line ${i+1}: High syllable count (~${syl})`;
-      report.push(msg);
-      issues.push({ line: i+1, message: msg });
-    }
-  });
-
-  // Readability heuristic: words per line and average word length
-  lines.forEach((ln, i) => {
-    const words = ln.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 0) return;
-    const avgWordLen = words.reduce((s,w)=>s+w.replace(/[^A-Za-z]/g,'').length,0)/words.length;
-    if (words.length > 10 || avgWordLen > 7) {
-      const msg = `Line ${i+1}: Low readability (words:${words.length}, avgLen:${avgWordLen.toFixed(1)})`;
-      report.push(msg);
-      issues.push({ line: i+1, message: msg });
-    }
-  });
-
-  // Show report
-  const reportDiv = document.getElementById('checkReport');
-  if (report.length === 0) {
-    reportDiv.style.display = 'block';
-    reportDiv.textContent = 'No major issues detected.';
-  } else {
-    reportDiv.style.display = 'block';
-    reportDiv.innerHTML = '<strong>Reviewer-sim report:</strong><br>' + report.map(r => `- ${r}`).join('<br>');
-  }
-
-  // Populate clickable issues list for quick navigation
-  const issuesDiv = document.getElementById('issuesList');
-  if (issues.length === 0) {
-    issuesDiv.style.display = 'none';
-    issuesDiv.innerHTML = '';
-  } else {
-    issuesDiv.style.display = 'block';
-    issuesDiv.innerHTML = '<strong>Issues (click to jump):</strong><br>' + issues.map(it => `<a href="#" onclick="goToLine(${it.line});return false;">Line ${it.line}: ${escapeHtml(it.message)}</a>`).join('<br>');
-  }
-  // render overlay highlights for current lines and issues
-  try { renderOverlay(lines, issues); } catch(e) { console.warn('overlay render failed', e); }
-}
-
-function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function goToLine(n) {
-  const ta = document.getElementById('lyricsEditor');
-  if (!ta) return;
-  const lines = ta.value.split(/\r?\n/);
-  let pos = 0;
-  for (let i=0;i<n-1 && i<lines.length;i++) pos += lines[i].length + 1;
-  ta.focus();
-  ta.selectionStart = ta.selectionEnd = pos;
-  ta.scrollTop = Math.max(0, (n-3) * 20);
-}
-
-// Render overlay highlights for each line using issues
-function renderOverlay(lines, issues) {
-  const overlay = document.getElementById('lyricsOverlay');
-  if (!overlay) return;
-  overlay.innerHTML = lines.map((ln, i) => {
-    const num = i+1;
-    const has = issues.some(it => it.line === num);
-    const safe = escapeHtml(ln) || '&nbsp;';
-    return `<div class="line ${has? 'highlight':''}" data-line="${num}">${safe}</div>`;
-  }).join('');
-  const ta = document.getElementById('lyricsEditor');
-  if (ta) overlay.scrollTop = ta.scrollTop;
-}
-
-function debounce(fn, wait) {
-  let t = null;
-  return (...args) => {
-    clearTimeout(t);
-    t = setTimeout(() => fn(...args), wait);
-  };
-}
-
-function exportReport() {
-  const reportDiv = document.getElementById('checkReport');
-  const issuesDiv = document.getElementById('issuesList');
-  const ta = document.getElementById('lyricsEditor');
-  const text = ta ? ta.value : '';
-  // Re-run checks to ensure latest
-  runChecks();
-  const reportHtml = reportDiv ? reportDiv.innerHTML : '';
-  const issuesHtml = issuesDiv ? issuesDiv.innerHTML : '';
-  const payload = {
-    song: getSongKey(),
-    lyrics: text,
-    reportHtml,
-    issuesHtml,
-    timestamp: new Date().toISOString()
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${getSongKey().replace(/[^a-z0-9-_]/gi,'_')}-review.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-// Demo helper to load sample lyrics so features are visible without API
-function showDemo() {
-  const sample = `[00:00.00] Demo Song - Artist
-[00:05.20] Verse 1: I woke up this morning, the sun was bright
-You know I felt the rhythm, moving through the night
-What are you doing
-
-[00:20.50] Chorus: Oh, oh, we sing again
-Oh, oh, we sing again
-
-[00:40.00] Verse 2: The city lights were calling my name
-I walked the streets alone but I felt no pain
-What are you doing
-
-`;
-  setupLyricsEditor(sample, 'Demo');
-  // show the lyrics section and focus
-  document.getElementById('lyricsSection').style.display = 'block';
-  const ta = document.getElementById('lyricsEditor');
-  if (ta) ta.focus();
-}
-
-function estimateSyllables(line) {
-  if (!line) return 0;
-  const words = line.split(/[^A-Za-z]+/).filter(Boolean);
-  let total = 0;
-  words.forEach(w => {
-    const lw = w.toLowerCase();
-    const vgroups = lw.replace(/e\b/, '').match(/[aeiouy]{1,2}/g);
-    total += (vgroups ? vgroups.length : 1);
-  });
-  return total;
-}
-
-// Per-line notes stored in localStorage keyed by song title+artist (fallback to 'untitled')
-function getSongKey() {
-  if (currentSongInfo && currentSongInfo.title) {
-    return `${currentSongInfo.title} - ${currentSongInfo.artist}`;
-  }
-  return 'untitled';
-}
-
-function saveNotesForEditor() {
-  const ta = document.getElementById('lyricsEditor');
-  if (!ta) return;
-  const lines = ta.value.split(/\r?\n/);
-  const notes = {};
-  lines.forEach((ln, i) => {
-    const m = ln.match(/\s*\{note:(.*)\}$/i);
-    if (m) notes[i] = m[1].trim();
-  });
-  localStorage.setItem('lyricsNotes:' + getSongKey(), JSON.stringify(notes));
-  alert('Notes saved locally');
-}
-
-function loadNotesForEditor() {
-  const ta = document.getElementById('lyricsEditor');
-  if (!ta) return;
-  const raw = localStorage.getItem('lyricsNotes:' + getSongKey());
-  if (!raw) return;
-  const notes = JSON.parse(raw);
-  const lines = ta.value.split(/\r?\n/);
-  Object.keys(notes).forEach(idx => {
-    const i = parseInt(idx, 10);
-    if (i < lines.length) {
-      // append note if not already present
-      if (!/\{note:/i.test(lines[i])) lines[i] = lines[i] + ' {note:' + notes[idx] + '}';
-    }
-  });
-  ta.value = lines.join('\n');
-}
-
-function toggleNotesView() {
-  const ta = document.getElementById('lyricsEditor');
-  if (!ta) return;
-  // simple toggle: if any line has {note: show/hide by removing or restoring from storage
-  const raw = localStorage.getItem('lyricsNotes:' + getSongKey());
-  if (!raw) {
-    // save existing inline notes to storage
-    saveNotesForEditor();
-    return;
-  }
-  // If notes exist in storage, remove inline notes from textarea
-  const notes = JSON.parse(raw);
-  const lines = ta.value.split(/\r?\n/);
-  Object.keys(notes).forEach(idx => {
-    const i = parseInt(idx, 10);
-    if (i < lines.length) lines[i] = lines[i].replace(/\s*\{note:.*\}$/i, '').trimRight();
-  });
-  ta.value = lines.join('\n');
-  localStorage.removeItem('lyricsNotes:' + getSongKey());
-}
-
     // Spotify Search
 async function spotifySearch() {
       const query = document.getElementById('sQuery').value.trim();
@@ -2035,7 +1877,6 @@ async function spotifySearch() {
               const spotifyTrackId = track.id;
               console.log('Spotify track selected:', { id: spotifyTrackId, name: track.name, artist: track.artists.map(a => a.name).join(', ') });
               const embedHtml = `<iframe src="https://open.spotify.com/embed/track/${spotifyTrackId}" width="100%" height="152" frameborder="0" allowtransparency="true" allow="autoplay; encrypted-media"></iframe>`;
-              // Use Spotify preview_url if available for timestamp capture
               updatePlayer(embedHtml, 'spotify', {
                 title: track.name,
                 artist: track.artists.map(a => a.name).join(', ')
@@ -2081,7 +1922,6 @@ async function appleSearch() {
           "embed.music.apple.com"
               );
               const embedHtml = `<iframe src="${embedUrl}" width="100%" height="150" frameborder="0" allowtransparency="true" allow="autoplay; encrypted-media"></iframe>`;
-              // iTunes API provides a previewUrl we can use
               updatePlayer(embedHtml, 'apple', {
                 title: track.trackName,
                 artist: track.artistName
@@ -2122,14 +1962,13 @@ async function youtubeSearch() {
               <div class="result-artist">${video.snippet.channelTitle}</div>
             `;
     div.onclick = () => {
-              // Use enablejsapi=1 for YouTube iframe to allow timestamp capture
-              const embedHtml = `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${video.id.videoId}?enablejsapi=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+              const embedHtml = `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${video.id.videoId}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
               // Extract artist from title if possible (common format: "Song Name - Artist")
               const titleParts = video.snippet.title.split(' - ');
               updatePlayer(embedHtml, 'youtube', {
                 title: titleParts[0] || video.snippet.title,
                 artist: titleParts[1] || video.snippet.channelTitle
-              }, null, null, { youtubeId: video.id.videoId });
+              }, null);
     };
     yResults.appendChild(div);
   });

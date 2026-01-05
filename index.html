@@ -233,6 +233,24 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+.apple-login-btn {
+  background: var(--apple-red);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.9rem;
+}
+
+.apple-login-btn:hover {
+  background: var(--apple-red-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
 .search-input-group {
   display: flex;
   gap: 0.75rem;
@@ -964,6 +982,10 @@ body {
         <div class="search-card">
           <div class="search-header">
             <h2>Apple Music Search</h2>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="appleUserStatus" style="font-size: 0.8rem; display: none; color: var(--text-secondary);"></span>
+              <button id="appleLoginBtn" class="apple-login-btn" onclick="appleLogin()">Login</button>
+            </div>
           </div>
           <div class="search-input-group">
             <input 
@@ -1108,6 +1130,16 @@ body {
       isSpotifyEmbedReady = true;
       console.log('Spotify IFrame API Ready');
     };
+
+    // Load MusicKit JS
+    const musicKitScript = document.createElement('script');
+    musicKitScript.src = "https://js-cdn.music.apple.com/musickit/v3/musickit.js";
+    musicKitScript.onload = () => {
+       console.log('MusicKit JS loaded');
+       // Note: MusicKit.configure() is required with a developer token
+    };
+    firstScriptTag.parentNode.insertBefore(musicKitScript, firstScriptTag);
+
     let currentPreviewUrl = null;
 
     // Theme Management
@@ -1596,6 +1628,8 @@ body {
     // Handle Progress Bar Seek
     document.addEventListener('DOMContentLoaded', () => {
       checkLoginStatus();
+      // Wait a bit for MusicKit to load
+      setTimeout(checkAppleLoginStatus, 1000);
       
       const progressBar = document.getElementById('playbackProgress');
       if (progressBar) {
@@ -2192,6 +2226,44 @@ body {
       } catch (error) {
         console.error('Error checking login status:', error);
       }
+    }
+
+    // Apple Music Login
+    function appleLogin() {
+      if (!window.MusicKit) {
+        alert('MusicKit JS is not loaded yet. Please wait.');
+        return;
+      }
+      
+      try {
+         const music = window.MusicKit.getInstance();
+         if (!music) {
+           alert('Apple Music login requires a Developer Token to be configured on the server. Please check the documentation.');
+           return;
+         }
+         
+         music.authorize().then(token => {
+           console.log('Authorized:', token);
+           checkAppleLoginStatus();
+         });
+      } catch(e) {
+         console.error('Apple Music login error:', e);
+         alert('Apple Music login failed. Developer Token may be missing.');
+      }
+    }
+
+    function checkAppleLoginStatus() {
+       if (window.MusicKit) {
+         try {
+           const music = window.MusicKit.getInstance();
+           if (music && music.isAuthorized) {
+              document.getElementById('appleLoginBtn').style.display = 'none';
+              const status = document.getElementById('appleUserStatus');
+              status.style.display = 'inline';
+              status.textContent = 'Logged In';
+           }
+         } catch(e) {}
+       }
     }
 
     // Spotify Search

@@ -1070,13 +1070,26 @@ body {
     let currentLyricsSource = 'best'; // Default to best lyrics
     let currentSongInfoSource = 'spotify';
     let currentSpotifyId = null;
+    let currentVideoId = null;
     
     // Audio control variables
     let audioPlayer = null;
+    let youtubePlayer = null;
+    let isYoutubeReady = false;
     let isLooping = false;
     let loopStartTime = 0;
     let loopEndTime = 0;
     let progressUpdateInterval = null;
+
+    // Load YouTube API
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    function onYouTubeIframeAPIReady() {
+      isYoutubeReady = true;
+    }
     let currentPreviewUrl = null;
 
     // Theme Management
@@ -1153,9 +1166,15 @@ body {
     }
 
     // Update Player
-    function updatePlayer(embedHtml, platform, songInfo = null, spotifyId = null, previewUrl = null) {
+    function updatePlayer(embedHtml, platform, songInfo = null, spotifyId = null, previewUrl = null, videoId = null) {
       const player = document.getElementById('player');
-      player.innerHTML = `<div class="player-embed">${embedHtml}</div>`;
+      
+      // Cleanup previous players
+      if (youtubePlayer) {
+        try { youtubePlayer.destroy(); } catch(e) {}
+        youtubePlayer = null;
+      }
+      
       updatePlayerBadge(platform);
       
       // Store song info for lyrics and song analysis
@@ -1163,12 +1182,34 @@ body {
         currentSongInfo = songInfo;
         currentSpotifyId = spotifyId;
         currentPreviewUrl = previewUrl;
+        currentVideoId = videoId;
         
-        // Setup audio preview if available
-        if (previewUrl) {
-          setupAudioPreview(previewUrl);
+        if (platform === 'youtube' && videoId && isYoutubeReady) {
+          player.innerHTML = '<div id="youtube-player"></div>';
+          youtubePlayer = new YT.Player('youtube-player', {
+            height: '220',
+            width: '100%',
+            videoId: videoId,
+            events: {
+              'onReady': onPlayerReady,
+              'onStateChange': onPlayerStateChange
+            }
+          });
+          
+          cleanupAudioPlayer(false); // Clean up audio but don't hide controls yet
+          
+          if (currentLyricsSource === 'write') {
+            document.getElementById('playbackControlsBar').style.display = 'block';
+          }
         } else {
-          cleanupAudioPlayer();
+          player.innerHTML = `<div class="player-embed">${embedHtml}</div>`;
+          
+          // Setup audio preview if available
+          if (previewUrl) {
+            setupAudioPreview(previewUrl);
+          } else {
+            cleanupAudioPlayer();
+          }
         }
         
         // Auto-switch to Spotify API if Spotify track ID is available
@@ -1225,7 +1266,7 @@ body {
     }
     
     // Cleanup Audio Player
-    function cleanupAudioPlayer() {
+    function cleanupAudioPlayer(hideControls = true) {
       if (audioPlayer) {
         audioPlayer.pause();
         audioPlayer = null;
@@ -1235,14 +1276,51 @@ body {
         progressUpdateInterval = null;
       }
       isLooping = false;
-      document.getElementById('playbackControlsBar').style.display = 'none';
+      if (hideControls) {
+        document.getElementById('playbackControlsBar').style.display = 'none';
+      }
+    }
+
+    // YouTube Player Events
+    function onPlayerReady(event) {
+      updateTotalTime();
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data == YT.PlayerState.PLAYING) {
+        document.getElementById('pauseIcon').textContent = '⏸️';
+        if (!progressUpdateInterval) {
+          progressUpdateInterval = setInterval(updateProgressBar, 500);
+        }
+      } else {
+        document.getElementById('pauseIcon').textContent = '▶️';
+        if (event.data != YT.PlayerState.BUFFERING) {
+          if (progressUpdateInterval) {
+            clearInterval(progressUpdateInterval);
+            progressUpdateInterval = null;
+          }
+        }
+      }
     }
     
     // Update Progress Bar
     function updateProgressBar() {
-      if (!audioPlayer || !audioPlayer.duration) return;
+      let currentTime = 0;
+      let duration = 0;
+
+      if (audioPlayer && audioPlayer.duration) {
+        currentTime = audioPlayer.currentTime;
+        duration = audioPlayer.duration;
+      } else if (youtubePlayer && youtubePlayer.getCurrentTime) {
+        try {
+          currentTime = youtubePlayer.getCurrentTime();
+          duration = youtubePlayer.getDuration();
+        } catch(e) {}
+      } else {
+        return;
+      }
       
-      const progress = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+      const progress = duration ? (currentTime / duration) * 100 : 0;
       const progressBar = document.getElementById('playbackProgress');
       if (progressBar) {
         progressBar.value = progress || 0;
@@ -1251,26 +1329,37 @@ body {
       updateCurrentTime();
       
       // Handle 10-second loop
-      if (isLooping && audioPlayer.currentTime >= loopEndTime) {
-        audioPlayer.currentTime = loopStartTime;
+      if (isLooping && currentTime >= loopEndTime) {
+        if (audioPlayer) audioPlayer.currentTime = loopStartTime;
+        else if (youtubePlayer) youtubePlayer.seekTo(loopStartTime, true);
       }
     }
     
     // Update Current Time Display
     function updateCurrentTime() {
-      if (!audioPlayer) return;
+      let currentTime = 0;
+      if (audioPlayer) currentTime = audioPlayer.currentTime;
+      else if (youtubePlayer && youtubePlayer.getCurrentTime) {
+        try { currentTime = youtubePlayer.getCurrentTime(); } catch(e) {}
+      }
+      
       const currentTimeEl = document.getElementById('currentTime');
       if (currentTimeEl) {
-        currentTimeEl.textContent = formatTime(audioPlayer.currentTime);
+        currentTimeEl.textContent = formatTime(currentTime);
       }
     }
     
     // Update Total Time Display
     function updateTotalTime() {
-      if (!audioPlayer) return;
+      let duration = 0;
+      if (audioPlayer) duration = audioPlayer.duration;
+      else if (youtubePlayer && youtubePlayer.getDuration) {
+        try { duration = youtubePlayer.getDuration(); } catch(e) {}
+      }
+      
       const totalTimeEl = document.getElementById('totalTime');
       if (totalTimeEl) {
-        totalTimeEl.textContent = formatTime(audioPlayer.duration);
+        totalTimeEl.textContent = formatTime(duration);
       }
     }
     
@@ -1284,40 +1373,71 @@ body {
     
     // Toggle Pause
     function togglePause() {
-      if (!audioPlayer) return;
-      
-      if (audioPlayer.paused) {
-        audioPlayer.play();
-        document.getElementById('pauseIcon').textContent = '⏸️';
-      } else {
-        audioPlayer.pause();
-        document.getElementById('pauseIcon').textContent = '▶️';
+      if (audioPlayer) {
+        if (audioPlayer.paused) {
+          audioPlayer.play();
+          document.getElementById('pauseIcon').textContent = '⏸️';
+        } else {
+          audioPlayer.pause();
+          document.getElementById('pauseIcon').textContent = '▶️';
+        }
+      } else if (youtubePlayer && youtubePlayer.getPlayerState) {
+        try {
+          if (youtubePlayer.getPlayerState() == YT.PlayerState.PLAYING) {
+            youtubePlayer.pauseVideo();
+            document.getElementById('pauseIcon').textContent = '▶️';
+          } else {
+            youtubePlayer.playVideo();
+            document.getElementById('pauseIcon').textContent = '⏸️';
+          }
+        } catch(e) {}
       }
     }
     
     // Rewind 10 Seconds
     function rewind10s() {
-      if (!audioPlayer) return;
-      audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
-      updateProgressBar();
+      if (audioPlayer) {
+        audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+        updateProgressBar();
+      } else if (youtubePlayer && youtubePlayer.getCurrentTime) {
+        try {
+          const time = Math.max(0, youtubePlayer.getCurrentTime() - 10);
+          youtubePlayer.seekTo(time, true);
+          updateProgressBar();
+        } catch(e) {}
+      }
     }
     
     // Forward 10 Seconds
     function forward10s() {
-      if (!audioPlayer) return;
-      audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 10);
-      updateProgressBar();
+      if (audioPlayer) {
+        audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 10);
+        updateProgressBar();
+      } else if (youtubePlayer && youtubePlayer.getCurrentTime) {
+        try {
+          const duration = youtubePlayer.getDuration();
+          const time = Math.min(duration, youtubePlayer.getCurrentTime() + 10);
+          youtubePlayer.seekTo(time, true);
+          updateProgressBar();
+        } catch(e) {}
+      }
     }
     
     // Toggle Loop 10 Seconds
     function toggleLoop10s() {
-      if (!audioPlayer) return;
+      if (!audioPlayer && !youtubePlayer) return;
       
       isLooping = !isLooping;
       const loopBtn = document.getElementById('loopBtn');
       
+      let currentTime = 0;
+      if (audioPlayer) currentTime = audioPlayer.currentTime;
+      else if (youtubePlayer && youtubePlayer.getCurrentTime) {
+        try { currentTime = youtubePlayer.getCurrentTime(); } catch(e) {}
+      }
+      
       if (isLooping) {
-        loopStartTime = audioPlayer.currentTime;
+        loopStartTime = currentTime;
         loopEndTime = loopStartTime + 10;
         loopBtn.classList.add('active');
         document.getElementById('loopIcon').textContent = '🔂';
@@ -1336,6 +1456,12 @@ body {
             const seekTime = (e.target.value / 100) * audioPlayer.duration;
             audioPlayer.currentTime = seekTime;
             updateProgressBar();
+          } else if (youtubePlayer && youtubePlayer.getDuration) {
+             try {
+               const seekTime = (e.target.value / 100) * youtubePlayer.getDuration();
+               youtubePlayer.seekTo(seekTime, true);
+               updateProgressBar();
+             } catch(e) {}
           }
         });
       }
@@ -1613,11 +1739,17 @@ body {
       
       // Show/hide playback controls based on write mode
       const playbackBar = document.getElementById('playbackControlsBar');
-      if (source === 'write' && currentPreviewUrl) {
-        if (!audioPlayer && currentPreviewUrl) {
-          setupAudioPreview(currentPreviewUrl);
+      if (source === 'write') {
+        if (currentPreviewUrl) {
+           if (!audioPlayer) {
+             setupAudioPreview(currentPreviewUrl);
+           }
+           playbackBar.style.display = 'block';
+        } else if (currentVideoId && youtubePlayer) {
+           playbackBar.style.display = 'block';
+        } else {
+           playbackBar.style.display = 'none';
         }
-        playbackBar.style.display = 'block';
       } else {
         playbackBar.style.display = 'none';
       }
@@ -1746,14 +1878,20 @@ body {
     }
     
     function insertTimestamp() {
-      if (!audioPlayer) {
-        alert('No audio playing. Please select a song with preview.');
+      let currentTime = 0;
+      if (audioPlayer) {
+        currentTime = audioPlayer.currentTime;
+      } else if (youtubePlayer && youtubePlayer.getCurrentTime) {
+        try { currentTime = youtubePlayer.getCurrentTime(); } catch(e) {}
+      } else {
+        alert('No audio playing. Please select a song with preview or YouTube video.');
         return;
       }
+
       const editor = document.getElementById('lyricsEditor');
       if (!editor) return;
       
-      const time = audioPlayer.currentTime;
+      const time = currentTime;
       const timestamp = formatTimestamp(time);
       const cursorPos = editor.selectionStart;
       const textBefore = editor.value.substring(0, cursorPos);
@@ -1976,7 +2114,7 @@ async function youtubeSearch() {
               updatePlayer(embedHtml, 'youtube', {
                 title: titleParts[0] || video.snippet.title,
                 artist: titleParts[1] || video.snippet.channelTitle
-              }, null);
+              }, null, null, video.id.videoId);
     };
     yResults.appendChild(div);
   });

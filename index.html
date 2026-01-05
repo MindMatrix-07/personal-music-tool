@@ -1015,7 +1015,8 @@ body {
           <div class="song-info-title">Song Analysis</div>
         </div>
         <div class="song-info-tabs">
-          <button class="song-info-tab active" data-source="spotify" onclick="switchSongInfoSource('spotify')">Spotify API</button>
+          <button class="song-info-tab active" data-source="apple" onclick="switchSongInfoSource('apple')">Apple Music</button>
+          <button class="song-info-tab" data-source="spotify" onclick="switchSongInfoSource('spotify')">Spotify</button>
         </div>
         <div class="song-info-content" id="songInfoContent">
           <div class="song-info-loading">Loading song info...</div>
@@ -1068,7 +1069,7 @@ body {
     let currentPlayerPlatform = null;
     let currentSongInfo = null;
     let currentLyricsSource = 'best'; // Default to best lyrics
-    let currentSongInfoSource = 'spotify';
+    let currentSongInfoSource = 'apple';
     let currentSpotifyId = null;
     let currentVideoId = null;
     
@@ -1475,13 +1476,12 @@ body {
       });
       
       if (currentSongInfo) {
-        // Always pass the Spotify track ID if available
         loadSongInfo(currentSongInfo.title, currentSongInfo.artist, source, currentSpotifyId);
       }
     }
     
     // Load Song Info
-    async function loadSongInfo(title, artist, source = 'spotify', spotifyId = null) {
+    async function loadSongInfo(title, artist, source = 'apple', spotifyId = null) {
       const songInfoSection = document.getElementById('songInfoSection');
       const songInfoContent = document.getElementById('songInfoContent');
       
@@ -1491,14 +1491,15 @@ body {
       try {
         let data = null;
         
-        // Both sources require Spotify track ID
-        if (!spotifyId) {
-          songInfoContent.innerHTML = '<div class="song-info-error">Spotify track ID required. Please select a Spotify track.</div>';
-          return;
-        }
-        
         if (source === 'spotify') {
+          // Spotify requires track ID
+          if (!spotifyId) {
+            songInfoContent.innerHTML = '<div class="song-info-error">Spotify track ID required. Please select a Spotify track.</div>';
+            return;
+          }
           data = await fetchSpotifyInfo(title, artist, spotifyId);
+        } else if (source === 'apple') {
+           data = await fetchAppleMusicInfo(title, artist);
         }
         
         if (data && !data.error) {
@@ -1513,6 +1514,23 @@ body {
       }
     }
     
+    // Fetch Apple Music Info
+    async function fetchAppleMusicInfo(title, artist) {
+      try {
+        const url = `/api/apple-music-info?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
+        console.log('Fetching Apple Music Info with:', { title, artist, url });
+        
+        const response = await fetch(url);
+        if (response.ok) {
+           return await response.json();
+        }
+        return await response.json().catch(() => ({ error: 'Apple Music data unavailable' }));
+      } catch (error) {
+        console.error('Apple Music Info fetch error:', error);
+        return { error: 'Failed to fetch from Apple Music: ' + error.message };
+      }
+    }
+
     // Fetch Spotify Info
     async function fetchSpotifyInfo(title, artist, spotifyId) {
       try {

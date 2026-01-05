@@ -22,5 +22,5 @@ export default async function handler(req, res) {
     `spotify_refresh=${data.refresh_token}; Path=/; HttpOnly; Secure`
   );
 
-  res.send("Spotify login successful. You can close this tab.");
+  res.redirect("/");
 }

@@ -940,7 +940,10 @@ body {
         <div class="search-card">
           <div class="search-header">
             <h2>Spotify Search</h2>
-            <button class="spotify-login-btn" onclick="login()">Login</button>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="spotifyUserStatus" style="font-size: 0.8rem; display: none; color: var(--text-secondary);"></span>
+              <button id="spotifyLoginBtn" class="spotify-login-btn" onclick="login()">Login</button>
+            </div>
           </div>
           <div class="search-input-group">
             <input 
@@ -1592,6 +1595,8 @@ body {
     
     // Handle Progress Bar Seek
     document.addEventListener('DOMContentLoaded', () => {
+      checkLoginStatus();
+      
       const progressBar = document.getElementById('playbackProgress');
       if (progressBar) {
         progressBar.addEventListener('input', (e) => {
@@ -2148,9 +2153,46 @@ body {
     }
 
     // Spotify Login
-function login() {
-  window.location.href = "/api/login";
-}
+    function login() {
+      window.location.href = "/api/login";
+    }
+
+    // Check Login Status
+    async function checkLoginStatus() {
+      try {
+        const tokenResponse = await fetch("/api/token");
+        const tokenData = await tokenResponse.json();
+        
+        const loginBtn = document.getElementById('spotifyLoginBtn');
+        const userStatus = document.getElementById('spotifyUserStatus');
+        
+        if (tokenData.access_token) {
+          if (loginBtn) loginBtn.style.display = 'none';
+          if (userStatus) {
+            userStatus.style.display = 'inline';
+            userStatus.textContent = 'Logged In';
+            
+            // Try to get user info
+            try {
+               const meResponse = await fetch('https://api.spotify.com/v1/me', {
+                 headers: { Authorization: "Bearer " + tokenData.access_token }
+               });
+               if (meResponse.ok) {
+                 const meData = await meResponse.json();
+                 userStatus.textContent = meData.display_name || 'Logged In';
+               }
+            } catch(e) {
+               console.error('Error fetching user profile', e);
+            }
+          }
+        } else {
+          if (loginBtn) loginBtn.style.display = 'block';
+          if (userStatus) userStatus.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error checking login status:', error);
+      }
+    }
 
     // Spotify Search
 async function spotifySearch() {

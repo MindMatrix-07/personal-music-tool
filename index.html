@@ -1309,10 +1309,7 @@
         if (platform === 'spotify') infoSource = 'spotify'; // Prefer Spotify info if playing Spotify
         if (platform === 'apple') infoSource = 'apple';     // Prefer Apple info if playing Apple
 
-        // Hide controls for Apple Music Embed (it has its own)
-        if (platform === 'apple') {
-          document.getElementById('playbackControlsBar').style.display = 'none';
-        }
+        if (platform === 'apple') infoSource = 'apple';     // Prefer Apple info if playing Apple
 
         loadSongInfo(songInfo.title, songInfo.artist, infoSource, spotifyId);
       } else {

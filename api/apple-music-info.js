@@ -42,7 +42,11 @@ export default async function handler(req, res) {
       energy: null,
       danceability: null,
       valence: null,
-      source: 'apple_music'
+      valence: null,
+      source: 'apple_music',
+      trackViewUrl: track.trackViewUrl,
+      collectionId: track.collectionId,
+      trackId: track.trackId
     };
 
     res.status(200).json(songInfo);

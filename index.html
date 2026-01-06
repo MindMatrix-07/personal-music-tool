@@ -1056,6 +1056,10 @@
 
         <!-- Playback Controls Bar -->
         <div class="playback-controls-bar" id="playbackControlsBar" style="display: none;">
+          <div id="previewIndicator"
+            style="display:none; font-size: 0.8rem; color: var(--apple-red); margin-bottom: 0.5rem; font-weight: 600; text-align: center;">
+            🎵 Playing 30s Preview
+          </div>
           <div class="playback-progress-container">
             <input type="range" id="playbackProgress" class="playback-progress" min="0" max="100" value="0" step="0.1">
             <div class="playback-time">
@@ -1212,6 +1216,10 @@
     function updatePlayer(embedHtml, platform, songInfo = null, spotifyId = null, previewUrl = null, videoId = null) {
       const player = document.getElementById('player');
 
+      // Reset Preview Indicator
+      const indicator = document.getElementById('previewIndicator');
+      if (indicator) indicator.style.display = 'none';
+
       // Cleanup previous players
       if (youtubePlayer) {
         try { youtubePlayer.destroy(); } catch (e) { }
@@ -1351,6 +1359,22 @@
       // Show playback controls if in write mode
       if (currentLyricsSource === 'write') {
         document.getElementById('playbackControlsBar').style.display = 'block';
+      }
+
+      // Update Preview Indicator
+      const indicator = document.getElementById('previewIndicator');
+      if (indicator) {
+        if (currentPlayerPlatform === 'apple') {
+          indicator.style.display = 'block';
+          indicator.style.color = 'var(--apple-red)';
+          indicator.textContent = '🎵 Playing 30s Preview (Apple Music)';
+        } else if (currentPlayerPlatform === 'spotify') {
+          indicator.style.display = 'block';
+          indicator.style.color = 'var(--spotify-green)';
+          indicator.textContent = '🎵 Playing 30s Preview (Spotify)';
+        } else {
+          indicator.style.display = 'none';
+        }
       }
     }
 
@@ -1624,7 +1648,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       checkLoginStatus();
       // Wait a bit for MusicKit to load
-      setTimeout(checkAppleLoginStatus, 1000);
+      // setTimeout(checkAppleLoginStatus, 1000);
 
       const progressBar = document.getElementById('playbackProgress');
       if (progressBar) {
@@ -2059,16 +2083,24 @@
       const lyricsContent = document.getElementById('lyricsContent');
       const savedLyrics = localStorage.getItem(`lyrics_${getSongKey()}`) || '';
 
+      // Check if playback controls are visible (means audio is validated)
+      const playbackBar = document.getElementById('playbackControlsBar');
+      let warningHtml = '';
+      if (playbackBar.style.display === 'none') {
+        warningHtml = '<div style="background:rgba(255, 59, 48, 0.1);color:#ff3b30;padding:0.75rem;margin-bottom:1rem;border-radius:8px;border:1px solid rgba(255, 59, 48, 0.2);font-size:0.9rem;">⚠️ <strong>Preview Unavailable:</strong> iTunes did not provide a preview for this song. Playback controls and Timestamp insertion are disabled.</div>';
+      }
+
       lyricsContent.innerHTML = `
-        <div class="lyrics-editor-container">
-          <div class="lyrics-editor-toolbar">
-            <button class="search-btn" onclick="insertTimestamp()" title="Insert timestamp at current position">Insert Time</button>
-            <button class="search-btn" onclick="saveLyrics()" title="Save lyrics">Save</button>
-            <button class="search-btn" onclick="clearLyrics()" title="Clear editor">Clear</button>
-          </div>
-          <textarea id="lyricsEditor" class="lyrics-editor-textarea" placeholder="Start writing your lyrics here...">${savedLyrics}</textarea>
-        </div>
-      `;
+    <div class="lyrics-editor-container">
+      ${warningHtml}
+      <div class="lyrics-editor-toolbar">
+        <button class="search-btn" onclick="insertTimestamp()" title="Insert timestamp at current position">Insert Time</button>
+        <button class="search-btn" onclick="saveLyrics()" title="Save lyrics">Save</button>
+        <button class="search-btn" onclick="clearLyrics()" title="Clear editor">Clear</button>
+      </div>
+      <textarea id="lyricsEditor" class="lyrics-editor-textarea" placeholder="Start writing your lyrics here...">${savedLyrics}</textarea>
+    </div>
+  `;
     }
 
     function getSongKey() {

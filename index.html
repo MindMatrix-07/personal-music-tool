@@ -1693,21 +1693,7 @@
           songInfoContent.innerHTML = `<div class="song-info-error">${errorMsg}</div>`;
         }
 
-        // Handle Player for Apple Music
-        if (source === 'apple' && data && !data.error) {
-          // Construct Embed URL
-          let embedUrl = '';
-          if (data.trackViewUrl) {
-            embedUrl = data.trackViewUrl.replace('music.apple.com', 'embed.music.apple.com');
-          } else if (data.collectionId && data.trackId) {
-            embedUrl = `https://embed.music.apple.com/us/album/${data.collectionId}?i=${data.trackId}`;
-          }
-
-          if (embedUrl) {
-            const embedHtml = `<iframe allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" frameborder="0" height="450" style="width:100%;max-width:660px;overflow:hidden;background:transparent;" sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" src="${embedUrl}"></iframe>`;
-            updatePlayer(embedHtml, 'apple', data);
-          }
-        }
+        // Handle Player for Apple Music - REMOVED to prevent infinite loop
       } catch (error) {
         console.error('Song info fetch error:', error);
         songInfoContent.innerHTML = '<div class="song-info-error">Error loading song info. Please try again.</div>';
